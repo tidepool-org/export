@@ -1,0 +1,13 @@
+{
+  "name": "non-broken-export-app",
+  "version": "1.0.0",
+  "main": "app.js",
+  "repository": "non-broken-export-app",
+  "author": "egrownhaeberli",
+  "license": "MIT",
+  "dependencies": {
+    "crypto": "^0.0.3",
+    "express": "^4.15.3",
+    "request": "^2.81.0"
+  }
+}
