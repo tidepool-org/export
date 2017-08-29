@@ -5,11 +5,9 @@ const express = require('express');
 const sortdata = require('../command-line-data-tools/bin/sortdata');
 const stripdata = require('../command-line-data-tools/bin/stripdata');
 const datatoworkbook = require('../command-line-data-tools/bin/datatoworkbook');
-const mime = require('mime');
-const fs = require('fs');
 const tempy = require('tempy');
 
-const app = express()
+const app = express();
 
 // TODO -stop being hard coded
 const session_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkdXIiOjI1OTIwMDAsImV4cCI6MTUwNjIyNjM1NSwic3ZyIjoibm8iLCJ1c3IiOiI5NzVhYzVjYzkyIn0.2HAw2tp7f2b7H2aOd7NLsJi7xil9LLNMdDaPcPn1Lr8';
