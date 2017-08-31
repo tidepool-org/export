@@ -57,9 +57,9 @@ app.get('/', (req, res) => {
           res.end();
         });
     })
-    .catch((error, response) => {
+    .catch((error) => {
       res.status(403).send('error!');
-      console.error(`403 ${error}, ${response.statusCode}`);
+      console.error(`403 ${error}, ${res.statusCode}`);
     });
 });
 
