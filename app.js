@@ -1,59 +1,68 @@
 #!/usr/bin/env node --harmony
 
+/* eslint-disable no-console */
+
 const request = require('request');
 const express = require('express');
 const sortdata = require('../command-line-data-tools/bin/sortdata');
 const stripdata = require('../command-line-data-tools/bin/stripdata');
 const datatoworkbook = require('../command-line-data-tools/bin/datatoworkbook');
-const tempy = require('tempy');
 
 const app = express();
 
-// TODO -stop being hard coded
-const session_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkdXIiOjI1OTIwMDAsImV4cCI6MTUwNjIyNjM1NSwic3ZyIjoibm8iLCJ1c3IiOiI5NzVhYzVjYzkyIn0.2HAw2tp7f2b7H2aOd7NLsJi7xil9LLNMdDaPcPn1Lr8';
+// TODO - stop being hard coded
+const tempSessionToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkdXIiOjI1OTIwMDAsImV4cCI6MTUwNjIyNjM1NSwic3ZyIjoibm8iLCJ1c3IiOiI5NzVhYzVjYzkyIn0.2HAw2tp7f2b7H2aOd7NLsJi7xil9LLNMdDaPcPn1Lr8';
 
 const id = '0d32e8b117';
 
-app.get('/', function (req, res) {
+function userIdQuery(userId, sessionToken) {
+  return {
+    url: `https://api.tidepool.org/data/${userId}`,
+    headers: {
+      'x-tidepool-session-token': sessionToken,
+      'Content-Type': 'application/json',
+    },
+  };
+}
 
-    const requestInfo = userIdQuery(id, session_token);
+app.get('/', (req, res) => {
+  const requestInfo = userIdQuery(id, tempSessionToken);
 
-    request.get (requestInfo, function (error, response, body) {
+  console.log('Fetching data...');
 
-        if (error) {
-            res.status(403).send('error!')
-            console.error('403' + error + ',' + response.statusCode)
-        }
+  new Promise((resolve, reject) => {
+    request.get(requestInfo, (error, response, body) => {
+      if (error) {
+        return reject(error, response);
+      }
 
-        let dataArray = JSON.parse(body);
+      return resolve(body);
+    });
+  })
+    .then((body) => {
+      console.log('Fetched data');
 
-        sortdata.sortData(dataArray);
+      const dataArray = JSON.parse(body);
+      sortdata.sortData(dataArray);
 
-        for (const dataObject of dataArray) {
-            stripdata.stripData(dataObject);
-        }
-        const filepath = tempy.file({extension: 'xlsx'});
-        const stringfilepath = String(filepath);
+      for (const dataObject of dataArray) {
+        stripdata.stripData(dataObject);
+      }
 
-        datatoworkbook.dataToWorkbook(dataArray, stringfilepath);
-        // res.send(JSON.stringify(dataArray));
-        res.download(stringfilepath);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=TidepoolExport.xlsx');
 
-        //res.send('Success');
+      datatoworkbook.dataToWorkbook(dataArray, res)
+        .then(() => {
+          res.end();
+        });
     })
-
+    .catch((error, response) => {
+      res.status(403).send('error!');
+      console.error(`403 ${error}, ${response.statusCode}`);
+    });
 });
 
-app.listen(3000, function() {
-    console.log('Listening on 3000');
+app.listen(3000, () => {
+  console.log('Listening on 3000');
 });
-
-function userIdQuery(userId, session_token) {
-    return path = {
-        url: `https://api.tidepool.org/data/${userId}`,
-        headers: {
-            'x-tidepool-session-token': session_token,
-            'Content-Type': 'application/json'
-        }
-    }
- }
