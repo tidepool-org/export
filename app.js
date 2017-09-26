@@ -1,49 +1,65 @@
 #!/usr/bin/env node --harmony
 
 /* eslint-disable no-console */
+/* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
-const request = require('request');
+const request = require('request-promise-native');
 const express = require('express');
+const flash = require('express-flash');
+const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
+const session = require('express-session');
 const sortdata = require('../command-line-data-tools/bin/sortdata');
 const stripdata = require('../command-line-data-tools/bin/stripdata');
 const datatoworkbook = require('../command-line-data-tools/bin/datatoworkbook');
 
+const port = 3001;
 const app = express();
+const sessionStore = new session.MemoryStore();
 
-// TODO - stop being hard coded
-const tempSessionToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkdXIiOjI1OTIwMDAsImV4cCI6MTUwNjIyNjM1NSwic3ZyIjoibm8iLCJ1c3IiOiI5NzVhYzVjYzkyIn0.2HAw2tp7f2b7H2aOd7NLsJi7xil9LLNMdDaPcPn1Lr8';
+app.set('view engine', 'pug');
+app.use(cookieParser('secret'));
+app.use(session({
+  cookie: {
+    maxAge: 60000,
+  },
+  store: sessionStore,
+  saveUninitialized: true,
+  resave: 'true',
+  secret: 'secret',
+}));
+app.use(flash());
+app.use(bodyParser.urlencoded({
+  extended: false,
+}));
 
-const id = '0d32e8b117';
+let sessionToken = '';
+let apiHost = '';
 
-function userIdQuery(userId, sessionToken) {
-  return {
-    url: `https://api.tidepool.org/data/${userId}`,
+app.get('/export/:userid', (req, res) => {
+  if (sessionToken === '' || apiHost === '') {
+    return res.redirect('/login');
+  }
+
+  console.log(`Fetching data for User ID ${req.params.userid}...`);
+  const requestInfo = {
+    url: `${apiHost}/data/${req.params.userid}`,
     headers: {
       'x-tidepool-session-token': sessionToken,
       'Content-Type': 'application/json',
     },
+    json: true,
   };
-}
+  console.log(requestInfo);
 
-app.get('/', (req, res) => {
-  const requestInfo = userIdQuery(id, tempSessionToken);
-
-  console.log('Fetching data...');
-
-  new Promise((resolve, reject) => {
-    request.get(requestInfo, (error, response, body) => {
-      if (error) {
-        return reject(error, response);
-      }
-
-      return resolve(body);
-    });
-  })
-    .then((body) => {
+  request.get(requestInfo)
+    .then((response) => {
       console.log('Fetched data');
+      console.log(response);
+      return;
 
-      const dataArray = JSON.parse(body);
-      sortdata.sortData(dataArray);
+      const dataArray = JSON.parse(JSON.stringify(response.body));
+      sortdata.sortData(response.body);
 
       for (const dataObject of dataArray) {
         stripdata.stripData(dataObject);
@@ -58,11 +74,58 @@ app.get('/', (req, res) => {
         });
     })
     .catch((error) => {
-      res.status(403).send('error!');
-      console.error(`403 ${error}, ${res.statusCode}`);
+      console.log(error);
+      return;
+
+      if (error.response && error.response.statusCode === 403) {
+        res.redirect('/login');
+      } else {
+        // FIXME: Less info once we go live
+        res.status(500).send(`${JSON.stringify(error)}`);
+        console.error(`500: ${JSON.stringify(error)}`);
+      }
     });
 });
 
-app.listen(3000, () => {
-  console.log('Listening on 3000');
+app.get('/login', (req, res) => {
+  res.render('login', {
+    flash: req.flash(),
+  });
+});
+
+app.post('/login', (req, res) => {
+  const auth = `Basic ${new Buffer(`${req.body.username}:${req.body.password}`).toString('base64')}`;
+  apiHost = (req.body.environment === 'local') ?
+    'http://localhost:8009' :
+    `https://${req.body.environment}-api.tidepool.org`;
+
+  request.post({
+    url: `${apiHost}/auth/login`,
+    json: true,
+    headers: {
+      Authorization: auth,
+    },
+  }, (error, response, body) => {
+    console.log(response.statusCode);
+    console.log(response.headers);
+    console.log(body);
+
+    if (error || response.statusCode !== 200) {
+      console.log('That is not right');
+      req.flash('error', 'Username and/or password are incorrect');
+      res.redirect('/login');
+    } else {
+      sessionToken = response.headers['x-tidepool-session-token'];
+      res.redirect('/patients');
+      // res.redirect(`/export/${body.userid}`);
+    }
+  });
+});
+
+app.get('/patients', (req, res) => {
+  res.render('patients');
+});
+
+app.listen(port, () => {
+  console.log(`Listening on ${port}`);
 });

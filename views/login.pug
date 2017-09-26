@@ -1,0 +1,23 @@
+html(lang='en')
+	head
+		title Tidepool data export service
+	body
+		h1 Login to Tidepool
+		form(method='post')
+			p
+				label(for='username') Username: 
+				input(type='text', name='username')
+			p
+				label(for='password') Password: 
+				input(type='password', name='password')
+			p
+				label(for='environment') Environment: 
+				select(name='environment')
+					option(value='local') localhost
+					option(value='dev') Development
+					option(value='stg') Staging
+					option(value='int') Integration
+					option(value='prd') Production
+			button(type='submit') Login
+		each message in flash
+			h4(style="color: red;") #{message}
