@@ -17,6 +17,25 @@ const port = 3001;
 const app = express();
 const sessionStore = new session.MemoryStore();
 
+let sessionToken = '';
+let apiHost = '';
+let user = null;
+
+function buildTidepoolRequest(path) {
+  return {
+    url: `${apiHost}${path}`,
+    headers: {
+      'x-tidepool-session-token': sessionToken,
+      'Content-Type': 'application/json',
+    },
+    json: true,
+  };
+}
+
+function getPatientNameFromProfile(profile) {
+  return (profile.patient.fullName) ? profile.patient.fullName : profile.fullName;
+}
+
 app.set('view engine', 'pug');
 app.use(cookieParser('secret'));
 app.use(session({
@@ -33,33 +52,20 @@ app.use(bodyParser.urlencoded({
   extended: false,
 }));
 
-let sessionToken = '';
-let apiHost = '';
-
 app.get('/export/:userid', (req, res) => {
   if (sessionToken === '' || apiHost === '') {
     return res.redirect('/login');
   }
 
   console.log(`Fetching data for User ID ${req.params.userid}...`);
-  const requestInfo = {
-    url: `${apiHost}/data/${req.params.userid}`,
-    headers: {
-      'x-tidepool-session-token': sessionToken,
-      'Content-Type': 'application/json',
-    },
-    json: true,
-  };
-  console.log(requestInfo);
+  const dataRequest = buildTidepoolRequest(`/data/${req.params.userid}`);
 
-  request.get(requestInfo)
+  request.get(dataRequest)
     .then((response) => {
       console.log('Fetched data');
-      console.log(response);
-      return;
 
-      const dataArray = JSON.parse(JSON.stringify(response.body));
-      sortdata.sortData(response.body);
+      const dataArray = JSON.parse(JSON.stringify(response));
+      sortdata.sortData(dataArray);
 
       for (const dataObject of dataArray) {
         stripdata.stripData(dataObject);
@@ -75,7 +81,6 @@ app.get('/export/:userid', (req, res) => {
     })
     .catch((error) => {
       console.log(error);
-      return;
 
       if (error.response && error.response.statusCode === 403) {
         res.redirect('/login');
@@ -116,6 +121,7 @@ app.post('/login', (req, res) => {
       res.redirect('/login');
     } else {
       sessionToken = response.headers['x-tidepool-session-token'];
+      user = body;
       res.redirect('/patients');
       // res.redirect(`/export/${body.userid}`);
     }
@@ -123,7 +129,37 @@ app.post('/login', (req, res) => {
 });
 
 app.get('/patients', (req, res) => {
-  res.render('patients');
+  if (sessionToken === '' || apiHost === '') {
+    res.redirect('/login');
+  } else {
+    const profileRequest = buildTidepoolRequest(`/metadata/${user.userid}/profile`);
+    const userListRequest = buildTidepoolRequest(`/metadata/users/${user.userid}/users`);
+
+    const userList = [];
+    request.get(profileRequest)
+      .then((response) => {
+        userList.push({
+          userid: user.userid,
+          fullName: getPatientNameFromProfile(response),
+        });
+      });
+
+    request.get(userListRequest)
+      .then((response) => {
+        for (const trustingUser of response) {
+          if (trustingUser.trustorPermissions && trustingUser.trustorPermissions.view) {
+            userList.push({
+              userid: trustingUser.userid,
+              fullName: getPatientNameFromProfile(trustingUser.profile),
+            });
+          }
+        }
+
+        res.render('patients', {
+          users: userList,
+        });
+      });
+  }
 });
 
 app.listen(port, () => {
