@@ -6,4 +6,8 @@ html(lang='en')
 		ul
 		each user in users
 			- const path = `/export/${user.userid}`;
+			- const anonymousPath = `/export/${user.userid}?anonymous=true`;
 			li: a(href=path) #{user.fullName}
+				|&nbsp;(
+				a(href=anonymousPath) anonymized
+				|)

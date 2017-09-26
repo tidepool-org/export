@@ -65,10 +65,13 @@ app.get('/export/:userid', (req, res) => {
       console.log('Fetched data');
 
       const dataArray = JSON.parse(JSON.stringify(response));
+
       sortdata.sortData(dataArray);
 
-      for (const dataObject of dataArray) {
-        stripdata.stripData(dataObject);
+      if (req.query.anonymous) {
+        for (const dataObject of dataArray) {
+          stripdata.stripData(dataObject);
+        }
       }
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
