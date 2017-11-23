@@ -9,8 +9,7 @@ const flash = require('express-flash');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const session = require('express-session');
-const sortdata = require('../command-line-data-tools/bin/sortdata');
-const stripdata = require('../command-line-data-tools/bin/stripdata');
+const dataTools = require('../command-line-data-tools/lib');
 const datatoworkbook = require('../command-line-data-tools/bin/datatoworkbook');
 
 const port = 3001;
@@ -54,45 +53,45 @@ app.use(bodyParser.urlencoded({
 
 app.get('/export/:userid', (req, res) => {
   if (sessionToken === '' || apiHost === '') {
-    return res.redirect('/login');
-  }
+    res.redirect('/login');
+  } else {
+    console.log(`Fetching data for User ID ${req.params.userid}...`);
+    const dataRequest = buildTidepoolRequest(`/data/${req.params.userid}`);
 
-  console.log(`Fetching data for User ID ${req.params.userid}...`);
-  const dataRequest = buildTidepoolRequest(`/data/${req.params.userid}`);
+    request.get(dataRequest)
+      .then((response) => {
+        console.log(`Fetched data for ${req.params.userid}`);
 
-  request.get(dataRequest)
-    .then((response) => {
-      console.log('Fetched data');
+        const dataArray = JSON.parse(JSON.stringify(response));
 
-      const dataArray = JSON.parse(JSON.stringify(response));
+        dataTools.sortData(dataArray);
 
-      sortdata.sortData(dataArray);
-
-      if (req.query.anonymous) {
-        for (const dataObject of dataArray) {
-          stripdata.stripData(dataObject);
+        if (req.query.anonymous) {
+          for (const dataObject of dataArray) {
+            dataTools.stripData(dataObject);
+          }
         }
-      }
 
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=TidepoolExport.xlsx');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=TidepoolExport.xlsx');
 
-      datatoworkbook.dataToWorkbook(dataArray, res)
-        .then(() => {
-          res.end();
-        });
-    })
-    .catch((error) => {
-      console.log(error);
+        datatoworkbook.dataToWorkbook(dataArray, res)
+          .then(() => {
+            res.end();
+          });
+      })
+      .catch((error) => {
+        console.log(error);
 
-      if (error.response && error.response.statusCode === 403) {
-        res.redirect('/login');
-      } else {
-        // FIXME: Less info once we go live
-        res.status(500).send(`${JSON.stringify(error)}`);
-        console.error(`500: ${JSON.stringify(error)}`);
-      }
-    });
+        if (error.response && error.response.statusCode === 403) {
+          res.redirect('/login');
+        } else {
+          // FIXME: Less info once we go live
+          res.status(500).send(`${JSON.stringify(error)}`);
+          console.error(`500: ${JSON.stringify(error)}`);
+        }
+      });
+  }
 });
 
 app.get('/login', (req, res) => {
@@ -114,19 +113,13 @@ app.post('/login', (req, res) => {
       Authorization: auth,
     },
   }, (error, response, body) => {
-    console.log(response.statusCode);
-    console.log(response.headers);
-    console.log(body);
-
     if (error || response.statusCode !== 200) {
-      console.log('That is not right');
       req.flash('error', 'Username and/or password are incorrect');
       res.redirect('/login');
     } else {
       sessionToken = response.headers['x-tidepool-session-token'];
       user = body;
       res.redirect('/patients');
-      // res.redirect(`/export/${body.userid}`);
     }
   });
 });
