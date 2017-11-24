@@ -9,8 +9,8 @@ const flash = require('express-flash');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const session = require('express-session');
-const dataTools = require('../command-line-data-tools/lib');
-const datatoworkbook = require('../command-line-data-tools/bin/datatoworkbook');
+const dataTools = require('tidepool-data-tools');
+const datatoworkbook = require('tidepool-data-tools/bin/datatoworkbook');
 
 const port = 3001;
 const app = express();
@@ -101,7 +101,7 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  const auth = `Basic ${new Buffer(`${req.body.username}:${req.body.password}`).toString('base64')}`;
+  const auth = `Basic ${Buffer.from(`${req.body.username}:${req.body.password}`).toString('base64')}`;
   apiHost = (req.body.environment === 'local') ?
     'http://localhost:8009' :
     `https://${req.body.environment}-api.tidepool.org`;
