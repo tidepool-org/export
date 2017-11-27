@@ -3,7 +3,7 @@
 /* eslint-disable no-console */
 /* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
-const request = require('request-promise-native');
+const requestPromise = require('request-promise-native');
 const express = require('express');
 const flash = require('express-flash');
 const cookieParser = require('cookie-parser');
@@ -58,13 +58,13 @@ app.get('/export/:userid', (req, res) => {
     console.log(`Fetching data for User ID ${req.params.userid}...`);
     const dataRequest = buildTidepoolRequest(`/data/${req.params.userid}`);
 
-    request.get(dataRequest)
+    requestPromise.get(dataRequest)
       .then((response) => {
         console.log(`Fetched data for ${req.params.userid}`);
 
         const dataArray = JSON.parse(JSON.stringify(response));
 
-        dataTools.sortData(dataArray);
+        dataTools.sortDataByDate(dataArray);
 
         if (req.query.anonymous) {
           for (const dataObject of dataArray) {
@@ -86,8 +86,7 @@ app.get('/export/:userid', (req, res) => {
         if (error.response && error.response.statusCode === 403) {
           res.redirect('/login');
         } else {
-          // FIXME: Less info once we go live
-          res.status(500).send(`${JSON.stringify(error)}`);
+          res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
           console.error(`500: ${JSON.stringify(error)}`);
         }
       });
@@ -106,7 +105,7 @@ app.post('/login', (req, res) => {
     'http://localhost:8009' :
     `https://${req.body.environment}-api.tidepool.org`;
 
-  request.post({
+  requestPromise.post({
     url: `${apiHost}/auth/login`,
     json: true,
     headers: {
@@ -132,7 +131,7 @@ app.get('/patients', (req, res) => {
     const userListRequest = buildTidepoolRequest(`/metadata/users/${user.userid}/users`);
 
     const userList = [];
-    request.get(profileRequest)
+    requestPromise.get(profileRequest)
       .then((response) => {
         userList.push({
           userid: user.userid,
@@ -140,7 +139,7 @@ app.get('/patients', (req, res) => {
         });
       });
 
-    request.get(userListRequest)
+    requestPromise.get(userListRequest)
       .then((response) => {
         for (const trustingUser of response) {
           if (trustingUser.trustorPermissions && trustingUser.trustorPermissions.view) {
