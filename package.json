@@ -23,7 +23,6 @@
     "pug": "2.0.0-rc.4",
     "request": "2.83.0",
     "request-promise-native": "1.0.5",
-    "tempy": "0.2.1",
     "tidepool-data-tools": "0.0.1"
   },
   "devDependencies": {
