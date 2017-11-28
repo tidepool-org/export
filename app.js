@@ -1,68 +1,162 @@
 #!/usr/bin/env node --harmony
 
 /* eslint-disable no-console */
+/* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
-const request = require('request');
+const requestPromise = require('request-promise-native');
 const express = require('express');
-const sortdata = require('../command-line-data-tools/bin/sortdata');
-const stripdata = require('../command-line-data-tools/bin/stripdata');
-const datatoworkbook = require('../command-line-data-tools/bin/datatoworkbook');
+const flash = require('express-flash');
+const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
+const session = require('express-session');
+const dataTools = require('tidepool-data-tools');
+const datatoworkbook = require('tidepool-data-tools/bin/datatoworkbook');
 
+const port = 3001;
 const app = express();
+const sessionStore = new session.MemoryStore();
 
-// TODO - stop being hard coded
-const tempSessionToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkdXIiOjI1OTIwMDAsImV4cCI6MTUwNjIyNjM1NSwic3ZyIjoibm8iLCJ1c3IiOiI5NzVhYzVjYzkyIn0.2HAw2tp7f2b7H2aOd7NLsJi7xil9LLNMdDaPcPn1Lr8';
+let sessionToken = '';
+let apiHost = '';
+let user = null;
 
-const id = '0d32e8b117';
-
-function userIdQuery(userId, sessionToken) {
+function buildTidepoolRequest(path) {
   return {
-    url: `https://api.tidepool.org/data/${userId}`,
+    url: `${apiHost}${path}`,
     headers: {
       'x-tidepool-session-token': sessionToken,
       'Content-Type': 'application/json',
     },
+    json: true,
   };
 }
 
-app.get('/', (req, res) => {
-  const requestInfo = userIdQuery(id, tempSessionToken);
+function getPatientNameFromProfile(profile) {
+  return (profile.patient.fullName) ? profile.patient.fullName : profile.fullName;
+}
 
-  console.log('Fetching data...');
+app.set('view engine', 'pug');
+app.use(cookieParser('secret'));
+app.use(session({
+  cookie: {
+    maxAge: 60000,
+  },
+  store: sessionStore,
+  saveUninitialized: true,
+  resave: 'true',
+  secret: 'secret',
+}));
+app.use(flash());
+app.use(bodyParser.urlencoded({
+  extended: false,
+}));
 
-  new Promise((resolve, reject) => {
-    request.get(requestInfo, (error, response, body) => {
-      if (error) {
-        return reject(error, response);
-      }
+app.get('/export/:userid', (req, res) => {
+  if (sessionToken === '' || apiHost === '') {
+    res.redirect('/login');
+  } else {
+    console.log(`Fetching data for User ID ${req.params.userid}...`);
+    const dataRequest = buildTidepoolRequest(`/data/${req.params.userid}`);
 
-      return resolve(body);
-    });
-  })
-    .then((body) => {
-      console.log('Fetched data');
+    requestPromise.get(dataRequest)
+      .then((response) => {
+        console.log(`Fetched data for ${req.params.userid}`);
 
-      const dataArray = JSON.parse(body);
-      sortdata.sortData(dataArray);
+        const dataArray = JSON.parse(JSON.stringify(response));
 
-      for (const dataObject of dataArray) {
-        stripdata.stripData(dataObject);
-      }
+        dataTools.sortDataByDate(dataArray);
 
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=TidepoolExport.xlsx');
+        if (req.query.anonymous) {
+          for (const dataObject of dataArray) {
+            dataTools.stripData(dataObject);
+          }
+        }
 
-      datatoworkbook.dataToWorkbook(dataArray, res)
-        .then(() => {
-          res.end();
-        });
-    })
-    .catch((error) => {
-      res.status(403).send('error!');
-      console.error(`403 ${error}, ${res.statusCode}`);
-    });
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=TidepoolExport.xlsx');
+
+        datatoworkbook.dataToWorkbook(dataArray, res)
+          .then(() => {
+            res.end();
+          });
+      })
+      .catch((error) => {
+        console.log(error);
+
+        if (error.response && error.response.statusCode === 403) {
+          res.redirect('/login');
+        } else {
+          res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
+          console.error(`500: ${JSON.stringify(error)}`);
+        }
+      });
+  }
 });
 
-app.listen(3000, () => {
-  console.log('Listening on 3000');
+app.get('/login', (req, res) => {
+  res.render('login', {
+    flash: req.flash(),
+  });
+});
+
+app.post('/login', (req, res) => {
+  const auth = `Basic ${Buffer.from(`${req.body.username}:${req.body.password}`).toString('base64')}`;
+  apiHost = (req.body.environment === 'local') ?
+    'http://localhost:8009' :
+    `https://${req.body.environment}-api.tidepool.org`;
+
+  requestPromise.post({
+    url: `${apiHost}/auth/login`,
+    json: true,
+    headers: {
+      Authorization: auth,
+    },
+  }, (error, response, body) => {
+    if (error || response.statusCode !== 200) {
+      req.flash('error', 'Username and/or password are incorrect');
+      res.redirect('/login');
+    } else {
+      sessionToken = response.headers['x-tidepool-session-token'];
+      user = body;
+      res.redirect('/patients');
+    }
+  });
+});
+
+app.get('/patients', (req, res) => {
+  if (sessionToken === '' || apiHost === '') {
+    res.redirect('/login');
+  } else {
+    const profileRequest = buildTidepoolRequest(`/metadata/${user.userid}/profile`);
+    const userListRequest = buildTidepoolRequest(`/metadata/users/${user.userid}/users`);
+
+    const userList = [];
+    requestPromise.get(profileRequest)
+      .then((response) => {
+        userList.push({
+          userid: user.userid,
+          fullName: getPatientNameFromProfile(response),
+        });
+      });
+
+    requestPromise.get(userListRequest)
+      .then((response) => {
+        for (const trustingUser of response) {
+          if (trustingUser.trustorPermissions && trustingUser.trustorPermissions.view) {
+            userList.push({
+              userid: trustingUser.userid,
+              fullName: getPatientNameFromProfile(trustingUser.profile),
+            });
+          }
+        }
+
+        res.render('patients', {
+          users: userList,
+        });
+      });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Listening on ${port}`);
 });

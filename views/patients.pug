@@ -1,0 +1,14 @@
+html(lang='en')
+  head
+    title Tidepool data export service
+  body
+    h1 Select a patient to export data for
+    ul
+    each user in users
+      - const path = `/export/${user.userid}`;
+      - const anonymousPath = `/export/${user.userid}?anonymous=true`;
+       li
+        a(href=path) #{user.fullName} 
+        | (
+        a(href=anonymousPath) anonymized
+        | )

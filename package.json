@@ -1,23 +1,38 @@
 {
-  "name": "non-broken-export-app",
+  "name": "tidepool-data-export-service",
   "version": "1.0.0",
   "main": "app.js",
-  "repository": "non-broken-export-app",
-  "author": "egrownhaeberli",
-  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tidepool-org/data-export-service-app.git"
+  },
+  "scripts": {
+    "lint": "eslint --cache --format=node_modules/eslint-formatter-pretty .",
+    "lint-fix": "npm run lint -- --fix"
+  },
+  "license": "BSD-2-Clause",
   "dependencies": {
-    "JSONStream": "^1.3.1",
-    "babel-eslint": "7.2.3",
-    "crypto": "^0.0.3",
-    "eslint": "4.4.1",
-    "eslint-config-airbnb": "15.1.0",
-    "eslint-plugin-import": "2.7.0",
+    "JSONStream": "1.3.1",
+    "body-parser": "1.18.2",
+    "cookie-parser": "1.4.3",
+    "exceljs": "0.7.1",
+    "express": "4.16.2",
+    "express-flash": "0.0.2",
+    "express-session": "1.15.6",
+    "pug": "2.0.0-rc.4",
+    "request": "2.83.0",
+    "request-promise-native": "1.0.5",
+    "tidepool-data-tools": "0.0.1"
+  },
+  "devDependencies": {
+    "babel-eslint": "8.0.2",
+    "eslint": "4.11.0",
+    "eslint-config-airbnb": "16.1.0",
+    "eslint-formatter-pretty": "1.3.0",
+    "eslint-plugin-import": "2.8.0",
     "eslint-plugin-jsx-a11y": "6.0.2",
-    "eslint-plugin-lodash": "2.4.4",
-    "eslint-plugin-react": "7.2.1",
-    "exceljs": "^0.5.1",
-    "express": "^4.15.3",
-    "request": "^2.81.0",
-    "tempy": "0.1.0"
+    "eslint-plugin-lodash": "2.5.0",
+    "eslint-plugin-promise": "3.6.0",
+    "eslint-plugin-react": "7.5.1"
   }
 }
