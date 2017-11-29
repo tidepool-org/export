@@ -13,11 +13,11 @@ html(lang='en')
 			p
 				label(for='environment') Environment: 
 				select(name='environment')
-					option(value='local') localhost
-					option(value='dev') Development
-					option(value='stg') Staging
-					option(value='int') Integration
 					option(value='prd') Production
+					option(value='int') Integration
+					option(value='stg') Staging
+					option(value='dev') Development
+					//- option(value='local') localhost
 			button(type='submit') Login
 		each message in flash
 			h4(style="color: red;") #{message}
