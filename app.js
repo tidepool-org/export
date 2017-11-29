@@ -9,8 +9,8 @@ const flash = require('express-flash');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const session = require('express-session');
-const dataTools = require('tidepool-data-tools');
-const datatoworkbook = require('tidepool-data-tools/bin/datatoworkbook');
+const dataTools = require('@tidepool/data-tools');
+const datatoworkbook = require('@tidepool/data-tools/bin/datatoworkbook');
 
 const port = 3001;
 const app = express();
