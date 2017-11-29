@@ -1,8 +1,8 @@
 #!/usr/bin/env node --harmony
 
-/* eslint-disable no-console */
 /* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
+const logMaker = require('./log.js');
 const requestPromise = require('request-promise-native');
 const express = require('express');
 const flash = require('express-flash');
@@ -11,6 +11,8 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 const dataTools = require('@tidepool/data-tools');
 const datatoworkbook = require('@tidepool/data-tools/bin/datatoworkbook');
+
+const log = logMaker('app.js');
 
 const port = 3001;
 const app = express();
@@ -55,12 +57,12 @@ app.get('/export/:userid', (req, res) => {
   if (sessionToken === '' || apiHost === '') {
     res.redirect('/login');
   } else {
-    console.log(`Fetching data for User ID ${req.params.userid}...`);
+    log.debug(`User ${user.userid} requesting download for User ${req.params.userid}...`);
     const dataRequest = buildTidepoolRequest(`/data/${req.params.userid}`);
 
     requestPromise.get(dataRequest)
       .then((response) => {
-        console.log(`Fetched data for ${req.params.userid}`);
+        log.info(`User ${user.userid} downloading data for User ${req.params.userid}...`);
 
         const dataArray = JSON.parse(JSON.stringify(response));
 
@@ -81,13 +83,13 @@ app.get('/export/:userid', (req, res) => {
           });
       })
       .catch((error) => {
-        console.log(error);
+        log.info(error);
 
         if (error.response && error.response.statusCode === 403) {
           res.redirect('/login');
         } else {
           res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
-          console.error(`500: ${JSON.stringify(error)}`);
+          error(`500: ${JSON.stringify(error)}`);
         }
       });
   }
@@ -113,11 +115,13 @@ app.post('/login', (req, res) => {
     },
   }, (error, response, body) => {
     if (error || response.statusCode !== 200) {
+      log.error(`Incorrect username and/or password for ${apiHost}`);
       req.flash('error', 'Username and/or password are incorrect');
       res.redirect('/login');
     } else {
       sessionToken = response.headers['x-tidepool-session-token'];
       user = body;
+      log.info(`User ${user.userid} logged into ${apiHost}`);
       res.redirect('/patients');
     }
   });
@@ -157,6 +161,10 @@ app.get('/patients', (req, res) => {
   }
 });
 
+app.get('/', (req, res) => {
+  res.redirect('/patients');
+});
+
 app.listen(port, () => {
-  console.log(`Listening on ${port}`);
+  log.info(`Listening on ${port}`);
 });
