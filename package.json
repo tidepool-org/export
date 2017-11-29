@@ -22,7 +22,7 @@
     "pug": "2.0.0-rc.4",
     "request": "2.83.0",
     "request-promise-native": "1.0.5",
-    "tidepool-data-tools": "0.0.1"
+    "@tidepool/data-tools": "1.0.0"
   },
   "devDependencies": {
     "babel-eslint": "8.0.2",
