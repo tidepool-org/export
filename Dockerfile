@@ -1,14 +1,34 @@
-FROM node:alpine
+# Base node
+FROM node:8.9.1-alpine AS base
 
-WORKDIR /app/command-line-data-tools
-COPY ../command-line-data-tools .
+WORKDIR /app
+COPY package.json /app
 
-WORKDIR /app/data-export-service-app
-COPY package.json /app/data-export-service-app
+#
+# ---- Dependencies ----
+FROM base AS dependencies
+# install only production node packages
+RUN yarn install --production
+# mv production node_modules aside
+RUN mv node_modules /root/prod_node_modules
+# install ALL node_modules, including 'devDependencies'
 RUN yarn install
-COPY . /app/data-export-service-app
+ 
+#
+# ---- Test ----
+# run linters
+FROM dependencies AS test
+COPY . /app
+RUN yarn lint
+ 
+#
+# ---- Release ----
+FROM base AS release
+# copy production node_modules
+COPY --from=dependencies /root/prod_node_modules ./node_modules
+COPY . /app
 
-USER NODE
+USER node
 
 EXPOSE 3001
 
