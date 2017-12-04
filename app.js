@@ -3,6 +3,8 @@
 /* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
 const logMaker = require('./log.js');
+const http = require('http');
+const https = require('https');
 const requestPromise = require('request-promise-native');
 const express = require('express');
 const flash = require('express-flash');
@@ -14,7 +16,14 @@ const datatoworkbook = require('@tidepool/data-tools/bin/datatoworkbook');
 
 const log = logMaker('app.js');
 
-const port = 3001;
+const config = {};
+config.httpPort = process.env.PORT;
+config.httpsPort = process.env.HTTPS_PORT;
+config.httpsConfig = JSON.parse(process.env.HTTPS_CONFIG);
+if (!(config.httpsPort || config.httpPort)) {
+  config.httpPort = 3001;
+}
+
 const app = express();
 const sessionStore = new session.MemoryStore();
 
@@ -165,6 +174,14 @@ app.get('/', (req, res) => {
   res.redirect('/patients');
 });
 
-app.listen(port, () => {
-  log.info(`Listening on ${port}`);
-});
+if (config.httpPort) {
+  app.server = http.createServer(app).listen(config.httpPort, () => {
+    log.info(`Listening for HTTP on ${config.httpPort}`);
+  });
+}
+
+if (config.httpsPort) {
+  https.createServer(config.httpsConfig, app).listen(config.httpsPort, () => {
+    log.info(`Listening for HTTPS on ${config.httpsPort}`);
+  });
+}
