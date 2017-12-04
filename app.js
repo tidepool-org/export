@@ -17,10 +17,12 @@ const datatoworkbook = require('@tidepool/data-tools/bin/datatoworkbook');
 const log = logMaker('app.js');
 
 const config = {};
-config.httpPort = process.env.PORT;
+config.httpPort = process.env.HTTP_PORT;
 config.httpsPort = process.env.HTTPS_PORT;
-config.httpsConfig = JSON.parse(process.env.HTTPS_CONFIG);
-if (!(config.httpsPort || config.httpPort)) {
+if (process.env.HTTPS_CONFIG) {
+  config.httpsConfig = JSON.parse(process.env.HTTPS_CONFIG);
+}
+if (!config.httpPort) {
   config.httpPort = 3001;
 }
 
@@ -61,6 +63,19 @@ app.use(flash());
 app.use(bodyParser.urlencoded({
   extended: false,
 }));
+
+// If we run over SSL, redirect any non-SSL requests to HTTPS
+if (config.httpsPort) {
+  app.use((req, res, next) => {
+    if (req.secure) {
+      next();
+    } else {
+      log.info('Redirecting HTTP request to HTTPS');
+      const httpsHost = req.headers.host.replace(/:\d+/, `:${config.httpsPort}`);
+      res.redirect(`https://${httpsHost}${req.url}`);
+    }
+  });
+}
 
 app.get('/export/:userid', (req, res) => {
   if (sessionToken === '' || apiHost === '') {
