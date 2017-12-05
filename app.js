@@ -3,6 +3,7 @@
 /* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
 const logMaker = require('./log.js');
+const _ = require('lodash');
 const http = require('http');
 const https = require('https');
 const requestPromise = require('request-promise-native');
@@ -21,6 +22,8 @@ config.httpPort = process.env.HTTP_PORT;
 config.httpsPort = process.env.HTTPS_PORT;
 if (process.env.HTTPS_CONFIG) {
   config.httpsConfig = JSON.parse(process.env.HTTPS_CONFIG);
+} else {
+  config.httpsConfig = {};
 }
 if (!config.httpPort) {
   config.httpPort = 3001;
@@ -67,7 +70,8 @@ app.use(bodyParser.urlencoded({
 // If we run over SSL, redirect any non-SSL requests to HTTPS
 if (config.httpsPort) {
   app.use((req, res, next) => {
-    if (req.secure) {
+    // The /status endpoint can be served over HTTP
+    if (req.secure || req.url === '/status') {
       next();
     } else {
       log.info('Redirecting HTTP request to HTTPS');
@@ -76,6 +80,9 @@ if (config.httpsPort) {
     }
   });
 }
+
+// The Health Check
+app.use('/status', require('express-healthcheck')());
 
 app.get('/export/:userid', (req, res) => {
   if (sessionToken === '' || apiHost === '') {
@@ -196,7 +203,12 @@ if (config.httpPort) {
 }
 
 if (config.httpsPort) {
-  https.createServer(config.httpsConfig, app).listen(config.httpsPort, () => {
-    log.info(`Listening for HTTPS on ${config.httpsPort}`);
-  });
+  if (_.isEmpty(config.httpsConfig)) {
+    log.error('SSL endpoint is enabled, but no valid config was found. Exiting.');
+    process.exit(1);
+  } else {
+    https.createServer(config.httpsConfig, app).listen(config.httpsPort, () => {
+      log.info(`Listening for HTTPS on ${config.httpsPort}`);
+    });
+  }
 }
