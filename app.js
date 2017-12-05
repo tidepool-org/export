@@ -3,6 +3,9 @@
 /* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
 const logMaker = require('./log.js');
+const _ = require('lodash');
+const http = require('http');
+const https = require('https');
 const requestPromise = require('request-promise-native');
 const express = require('express');
 const flash = require('express-flash');
@@ -14,7 +17,18 @@ const datatoworkbook = require('@tidepool/data-tools/bin/datatoworkbook');
 
 const log = logMaker('app.js');
 
-const port = 3001;
+const config = {};
+config.httpPort = process.env.HTTP_PORT;
+config.httpsPort = process.env.HTTPS_PORT;
+if (process.env.HTTPS_CONFIG) {
+  config.httpsConfig = JSON.parse(process.env.HTTPS_CONFIG);
+} else {
+  config.httpsConfig = {};
+}
+if (!config.httpPort) {
+  config.httpPort = 3001;
+}
+
 const app = express();
 const sessionStore = new session.MemoryStore();
 
@@ -52,6 +66,23 @@ app.use(flash());
 app.use(bodyParser.urlencoded({
   extended: false,
 }));
+
+// If we run over SSL, redirect any non-SSL requests to HTTPS
+if (config.httpsPort) {
+  app.use((req, res, next) => {
+    // The /status endpoint can be served over HTTP
+    if (req.secure || req.url === '/status') {
+      next();
+    } else {
+      log.info('Redirecting HTTP request to HTTPS');
+      const httpsHost = req.headers.host.replace(/:\d+/, `:${config.httpsPort}`);
+      res.redirect(`https://${httpsHost}${req.url}`);
+    }
+  });
+}
+
+// The Health Check
+app.use('/status', require('express-healthcheck')());
 
 app.get('/export/:userid', (req, res) => {
   if (sessionToken === '' || apiHost === '') {
@@ -165,6 +196,19 @@ app.get('/', (req, res) => {
   res.redirect('/patients');
 });
 
-app.listen(port, () => {
-  log.info(`Listening on ${port}`);
-});
+if (config.httpPort) {
+  app.server = http.createServer(app).listen(config.httpPort, () => {
+    log.info(`Listening for HTTP on ${config.httpPort}`);
+  });
+}
+
+if (config.httpsPort) {
+  if (_.isEmpty(config.httpsConfig)) {
+    log.error('SSL endpoint is enabled, but no valid config was found. Exiting.');
+    process.exit(1);
+  } else {
+    https.createServer(config.httpsConfig, app).listen(config.httpsPort, () => {
+      log.info(`Listening for HTTPS on ${config.httpsPort}`);
+    });
+  }
+}
