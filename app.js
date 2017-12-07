@@ -9,9 +9,9 @@ const https = require('https');
 const requestPromise = require('request-promise-native');
 const express = require('express');
 const flash = require('express-flash');
-const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const session = require('express-session');
+const MemoryStore = require('memorystore')(session);
 const dataTools = require('@tidepool/data-tools');
 const datatoworkbook = require('@tidepool/data-tools/bin/datatoworkbook');
 
@@ -28,19 +28,19 @@ if (process.env.HTTPS_CONFIG) {
 if (!config.httpPort) {
   config.httpPort = 3001;
 }
+config.sessionSecret = process.env.SESSION_SECRET;
+if (_.isEmpty(config.sessionSecret)) {
+  log.error('SESSION_SECRET config value required.');
+  process.exit(1);
+}
 
 const app = express();
-const sessionStore = new session.MemoryStore();
 
-let sessionToken = '';
-let apiHost = '';
-let user = null;
-
-function buildTidepoolRequest(path) {
+function buildTidepoolRequest(path, requestSession) {
   return {
-    url: `${apiHost}${path}`,
+    url: `${requestSession.apiHost}${path}`,
     headers: {
-      'x-tidepool-session-token': sessionToken,
+      'x-tidepool-session-token': requestSession.sessionToken,
       'Content-Type': 'application/json',
     },
     json: true,
@@ -52,15 +52,16 @@ function getPatientNameFromProfile(profile) {
 }
 
 app.set('view engine', 'pug');
-app.use(cookieParser('secret'));
 app.use(session({
+  store: new MemoryStore({
+    checkPeriod: 86400000, // Prune expired entries every 24h
+  }),
+  secret: config.sessionSecret,
+  resave: false,
+  saveUninitialized: false,
   cookie: {
-    maxAge: 60000,
+    secure: config.httpsConfig,
   },
-  store: sessionStore,
-  saveUninitialized: true,
-  resave: 'true',
-  secret: 'secret',
 }));
 app.use(flash());
 app.use(bodyParser.urlencoded({
@@ -85,15 +86,15 @@ if (config.httpsPort) {
 app.use('/status', require('express-healthcheck')());
 
 app.get('/export/:userid', (req, res) => {
-  if (sessionToken === '' || apiHost === '') {
+  if (!(_.hasIn(req.session, 'sessionToken') && _.hasIn(req.session, 'apiHost'))) {
     res.redirect('/login');
   } else {
-    log.debug(`User ${user.userid} requesting download for User ${req.params.userid}...`);
-    const dataRequest = buildTidepoolRequest(`/data/${req.params.userid}`);
+    log.debug(`User ${req.session.user.userid} requesting download for User ${req.params.userid}...`);
+    const dataRequest = buildTidepoolRequest(`/data/${req.params.userid}`, req.session);
 
     requestPromise.get(dataRequest)
       .then((response) => {
-        log.info(`User ${user.userid} downloading data for User ${req.params.userid}...`);
+        log.info(`User ${req.session.user.userid} downloading data for User ${req.params.userid}...`);
 
         const dataArray = JSON.parse(JSON.stringify(response));
 
@@ -134,42 +135,42 @@ app.get('/login', (req, res) => {
 
 app.post('/login', (req, res) => {
   const auth = `Basic ${Buffer.from(`${req.body.username}:${req.body.password}`).toString('base64')}`;
-  apiHost = (req.body.environment === 'local') ?
+  req.session.apiHost = (req.body.environment === 'local') ?
     'http://localhost:8009' :
     `https://${req.body.environment}-api.tidepool.org`;
 
   requestPromise.post({
-    url: `${apiHost}/auth/login`,
+    url: `${req.session.apiHost}/auth/login`,
     json: true,
     headers: {
       Authorization: auth,
     },
   }, (error, response, body) => {
     if (error || response.statusCode !== 200) {
-      log.error(`Incorrect username and/or password for ${apiHost}`);
+      log.error(`Incorrect username and/or password for ${req.session.apiHost}`);
       req.flash('error', 'Username and/or password are incorrect');
       res.redirect('/login');
     } else {
-      sessionToken = response.headers['x-tidepool-session-token'];
-      user = body;
-      log.info(`User ${user.userid} logged into ${apiHost}`);
+      req.session.sessionToken = response.headers['x-tidepool-session-token'];
+      req.session.user = body;
+      log.info(`User ${req.session.user.userid} logged into ${req.session.apiHost}`);
       res.redirect('/patients');
     }
   });
 });
 
 app.get('/patients', (req, res) => {
-  if (sessionToken === '' || apiHost === '') {
+  if (!(_.hasIn(req.session, 'sessionToken') && _.hasIn(req.session, 'apiHost'))) {
     res.redirect('/login');
   } else {
-    const profileRequest = buildTidepoolRequest(`/metadata/${user.userid}/profile`);
-    const userListRequest = buildTidepoolRequest(`/metadata/users/${user.userid}/users`);
+    const profileRequest = buildTidepoolRequest(`/metadata/${req.session.user.userid}/profile`, req.session);
+    const userListRequest = buildTidepoolRequest(`/metadata/users/${req.session.user.userid}/users`, req.session);
 
     const userList = [];
     requestPromise.get(profileRequest)
       .then((response) => {
         userList.push({
-          userid: user.userid,
+          userid: req.session.user.userid,
           fullName: getPatientNameFromProfile(response),
         });
       });
