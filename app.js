@@ -92,7 +92,7 @@ if (config.httpsPort) {
 // The Health Check
 app.use('/status', require('express-healthcheck')());
 
-app.get('/export/:userid', auth, async(req, res) => {
+app.get('/export/:userid', auth, async (req, res) => {
   const queryData = [];
 
   let logString = `User ${req.session.user.userid} requesting download for User ${req.params.userid}`;
@@ -134,7 +134,7 @@ app.get('/export/:userid', auth, async(req, res) => {
       res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
       log.error(`500: ${JSON.stringify(error)}`);
     }
-  };
+  }
 });
 
 app.get('/login', (req, res) => {
@@ -143,7 +143,7 @@ app.get('/login', (req, res) => {
   });
 });
 
-app.post('/login', async(req, res) => {
+app.post('/login', async (req, res) => {
   req.session.apiHost = (req.body.environment === 'local') ?
     'http://localhost:8009' :
     `https://${req.body.environment}-api.tidepool.org`;
@@ -172,7 +172,7 @@ app.get('/logout', (req, res) => {
   res.redirect('/login');
 });
 
-app.get('/patients', auth, async(req, res) => {
+app.get('/patients', auth, async (req, res) => {
   const userList = [];
   try {
     const profileResponse = await axios.get(`${req.session.apiHost}/metadata/${req.session.user.userid}/profile`, buildHeaders(req.session));
