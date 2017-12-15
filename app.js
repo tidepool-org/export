@@ -6,12 +6,13 @@ const logMaker = require('./log.js');
 const _ = require('lodash');
 const http = require('http');
 const https = require('https');
-const requestPromise = require('request-promise-native');
+const axios = require('axios');
 const express = require('express');
 const flash = require('express-flash');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const MemoryStore = require('memorystore')(session);
+const queryString = require('query-string');
 const dataTools = require('@tidepool/data-tools');
 const datatoworkbook = require('@tidepool/data-tools/bin/datatoworkbook');
 
@@ -45,14 +46,11 @@ const auth = (req, res, next) => {
   return next();
 };
 
-function buildTidepoolRequest(path, requestSession) {
+function buildHeaders(requestSession) {
   return {
-    url: `${requestSession.apiHost}${path}`,
     headers: {
       'x-tidepool-session-token': requestSession.sessionToken,
-      'Content-Type': 'application/json',
     },
-    json: true,
   };
 }
 
@@ -94,48 +92,49 @@ if (config.httpsPort) {
 // The Health Check
 app.use('/status', require('express-healthcheck')());
 
-app.get('/export/:userid', auth, (req, res) => {
-  let dataRequest;
-  if (req.query.startDate && req.query.endDate) {
-    log.info(`User ${req.session.user.userid} requesting download for User ${req.params.userid} from ${req.query.startDate} to ${req.query.endDate}...`);
-    dataRequest = buildTidepoolRequest(`/data/${req.params.userid}?startDate=${req.query.startDate}&endDate=${req.query.endDate}`, req.session);
-  } else {
-    log.info(`User ${req.session.user.userid} requesting entire history download for User ${req.params.userid}...`);
-    dataRequest = buildTidepoolRequest(`/data/${req.params.userid}`, req.session);
+app.get('/export/:userid', auth, async(req, res) => {
+  const queryData = [];
+
+  let logString = `User ${req.session.user.userid} requesting download for User ${req.params.userid}`;
+  if (req.query.startDate) {
+    queryData.startDate = req.query.startDate;
+    logString += ` from ${req.query.startDate}`;
   }
+  if (req.query.endDate) {
+    queryData.endDate = req.query.endDate;
+    logString += ` until ${req.query.endDate}`;
+  }
+  log.info(logString);
 
-  requestPromise.get(dataRequest)
-    .then((response) => {
-      log.debug(`User ${req.session.user.userid} downloading data for User ${req.params.userid}...`);
+  const response = await axios.get(`${req.session.apiHost}/data/${req.params.userid}?${queryString.stringify(queryData)}`, buildHeaders(req.session));
+  try {
+    log.debug(`User ${req.session.user.userid} downloading data for User ${req.params.userid}...`);
 
-      const dataArray = JSON.parse(JSON.stringify(response));
+    const dataArray = JSON.parse(JSON.stringify(response.data));
 
-      dataTools.sortDataByDate(dataArray);
+    dataTools.sortDataByDate(dataArray);
 
-      if (req.query.anonymous) {
-        for (const dataObject of dataArray) {
-          dataTools.stripData(dataObject);
-        }
+    if (req.query.anonymous) {
+      for (const dataObject of dataArray) {
+        dataTools.stripData(dataObject);
       }
+    }
 
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=TidepoolExport.xlsx');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=TidepoolExport.xlsx');
 
-      datatoworkbook.dataToWorkbook(dataArray, res)
-        .then(() => {
-          res.end();
-        });
-    })
-    .catch((error) => {
-      log.error(error);
+    await datatoworkbook.dataToWorkbook(dataArray, res);
+    res.end();
+  } catch (error) {
+    log.error(error);
 
-      if (error.response && error.response.statusCode === 403) {
-        res.redirect('/login');
-      } else {
-        res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
-        error(`500: ${JSON.stringify(error)}`);
-      }
-    });
+    if (error.response && error.response.statusCode === 403) {
+      res.redirect('/login');
+    } else {
+      res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
+      log.error(`500: ${JSON.stringify(error)}`);
+    }
+  };
 });
 
 app.get('/login', (req, res) => {
@@ -144,66 +143,60 @@ app.get('/login', (req, res) => {
   });
 });
 
+app.post('/login', async(req, res) => {
+  req.session.apiHost = (req.body.environment === 'local') ?
+    'http://localhost:8009' :
+    `https://${req.body.environment}-api.tidepool.org`;
+
+  try {
+    const response = await axios.post(`${req.session.apiHost}/auth/login`, null, {
+      auth: {
+        username: req.body.username,
+        password: req.body.password,
+      },
+    });
+    req.session.sessionToken = response.headers['x-tidepool-session-token'];
+    req.session.user = response.data;
+    log.info(`User ${req.session.user.userid} logged into ${req.session.apiHost}`);
+    res.redirect('/patients');
+  } catch (error) {
+    log.error(`Incorrect username and/or password for ${req.session.apiHost}`);
+    req.flash('error', 'Username and/or password are incorrect');
+    res.redirect('/login');
+  }
+});
+
 app.get('/logout', (req, res) => {
   delete req.session.sessionToken;
   delete req.session.apiHost;
   res.redirect('/login');
 });
 
-app.post('/login', (req, res) => {
-  const authHeader = `Basic ${Buffer.from(`${req.body.username}:${req.body.password}`).toString('base64')}`;
-  req.session.apiHost = (req.body.environment === 'local') ?
-    'http://localhost:8009' :
-    `https://${req.body.environment}-api.tidepool.org`;
-
-  requestPromise.post({
-    url: `${req.session.apiHost}/auth/login`,
-    json: true,
-    headers: {
-      Authorization: authHeader,
-    },
-  }, (error, response, body) => {
-    if (error || response.statusCode !== 200) {
-      log.error(`Incorrect username and/or password for ${req.session.apiHost}`);
-      req.flash('error', 'Username and/or password are incorrect');
-      res.redirect('/login');
-    } else {
-      req.session.sessionToken = response.headers['x-tidepool-session-token'];
-      req.session.user = body;
-      log.info(`User ${req.session.user.userid} logged into ${req.session.apiHost}`);
-      res.redirect('/patients');
-    }
-  });
-});
-
-app.get('/patients', auth, (req, res) => {
-  const profileRequest = buildTidepoolRequest(`/metadata/${req.session.user.userid}/profile`, req.session);
-  const userListRequest = buildTidepoolRequest(`/metadata/users/${req.session.user.userid}/users`, req.session);
-
+app.get('/patients', auth, async(req, res) => {
   const userList = [];
-  requestPromise.get(profileRequest)
-    .then((response) => {
-      userList.push({
-        userid: req.session.user.userid,
-        fullName: getPatientNameFromProfile(response),
-      });
+  try {
+    const profileResponse = await axios.get(`${req.session.apiHost}/metadata/${req.session.user.userid}/profile`, buildHeaders(req.session));
+    userList.push({
+      userid: req.session.user.userid,
+      fullName: getPatientNameFromProfile(profileResponse.data),
     });
 
-  requestPromise.get(userListRequest)
-    .then((response) => {
-      for (const trustingUser of response) {
-        if (trustingUser.trustorPermissions && trustingUser.trustorPermissions.view) {
-          userList.push({
-            userid: trustingUser.userid,
-            fullName: getPatientNameFromProfile(trustingUser.profile),
-          });
-        }
+    const userListResponse = await axios.get(`${req.session.apiHost}/metadata/users/${req.session.user.userid}/users`, buildHeaders(req.session));
+    for (const trustingUser of userListResponse.data) {
+      if (trustingUser.trustorPermissions && trustingUser.trustorPermissions.view) {
+        userList.push({
+          userid: trustingUser.userid,
+          fullName: getPatientNameFromProfile(trustingUser.profile),
+        });
       }
+    }
 
-      res.render('patients', {
-        users: userList,
-      });
+    res.render('patients', {
+      users: userList,
     });
+  } catch (error) {
+    log.error('Error fetching patient data');
+  }
 });
 
 app.get('/', (req, res) => {
