@@ -180,7 +180,11 @@ app.get('/patients', auth, async (req, res) => {
       userid: req.session.user.userid,
       fullName: getPatientNameFromProfile(profileResponse.data),
     });
+  } catch (error) {
+    log.debug('Could not read profile. Probably a clinician account');
+  }
 
+  try {
     const userListResponse = await axios.get(`${req.session.apiHost}/metadata/users/${req.session.user.userid}/users`, buildHeaders(req.session));
     for (const trustingUser of userListResponse.data) {
       if (trustingUser.trustorPermissions && trustingUser.trustorPermissions.view) {
@@ -195,7 +199,10 @@ app.get('/patients', auth, async (req, res) => {
       users: userList,
     });
   } catch (error) {
-    log.error('Error fetching patient data');
+    log.error('Error fetching patient list');
+    log.error(error);
+    req.flash('error', 'Error fetching patient list');
+    res.redirect('/login');
   }
 });
 
