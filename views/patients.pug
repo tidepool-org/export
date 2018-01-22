@@ -5,12 +5,19 @@ html(lang='en')
     h1 Select a patient to export data for
     ul
     each user in users
-      - const path = `/export/${user.userid}`;
-      - const anonymousPath = `/export/${user.userid}?anonymous=true`;
-       li
-        a(href=path) #{user.fullName} 
-        | (
-        a(href=anonymousPath) anonymized
-        | )
+      - const xlsxPath = `/export/${user.userid}`;
+      - const anonymousXlsxPath = `/export/${user.userid}?anonymous=true`;
+      - const jsonPath = `/export/${user.userid}?format=json`;
+      - const anonymousJsonPath = `/export/${user.userid}?format=json&anonymous=true`;
+       li #{user.fullName}: 
+        a(href=xlsxPath) Excel
+        |  |   
+        a(href=anonymousXlsxPath) Excel anonymized
+        |  |  
+        a(href=jsonPath) JSON
+        |  |   
+        a(href=anonymousJsonPath) JSON anonymized
     br
+    p To restrict the query range, copy the download link, and add something like '&startDate=2017-10-01T15:00:00.000Z&endDate=2018-01-10T15:00:00.000Z' 
+     | and paste it directly into your browser address bar
     a(href='/logout') Logout

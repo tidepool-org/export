@@ -120,11 +120,18 @@ app.get('/export/:userid', auth, async (req, res) => {
       }
     }
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=TidepoolExport.xlsx');
+    if (req.query.format === 'json') {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', 'attachment; filename=TidepoolExport.json');
 
-    await datatoworkbook.dataToWorkbook(dataArray, res);
-    res.end();
+      res.json(dataArray);
+    } else {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=TidepoolExport.xlsx');
+
+      await datatoworkbook.dataToWorkbook(dataArray, res);
+      res.end();
+    }
   } catch (error) {
     log.error(error);
 
