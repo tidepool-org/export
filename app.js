@@ -4,6 +4,7 @@
 
 const logMaker = require('./log.js');
 const _ = require('lodash');
+const fs = require('fs');
 const http = require('http');
 const https = require('https');
 const axios = require('axios');
@@ -13,8 +14,8 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 const MemoryStore = require('memorystore')(session);
 const queryString = require('query-string');
-const dataTools = require('@tidepool/data-tools');
-const datatoworkbook = require('@tidepool/data-tools/bin/datatoworkbook');
+// const dataTools = require('@tidepool/data-tools');
+// const datatoworkbook = require('@tidepool/data-tools/bin/datatoworkbook');
 
 const log = logMaker('app.js');
 
@@ -106,13 +107,23 @@ app.get('/export/:userid', auth, async (req, res) => {
   }
   log.info(logString);
 
-  const response = await axios.get(`${req.session.apiHost}/data/${req.params.userid}?${queryString.stringify(queryData)}`, buildHeaders(req.session));
+  const requestConfig = buildHeaders(req.session);
+  requestConfig.responseType = 'stream';
+  const response = await axios.get(`${req.session.apiHost}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
   try {
     log.debug(`User ${req.session.user.userid} downloading data for User ${req.params.userid}...`);
+    response.data.pipe(fs.createWriteStream('/downloads/export.json'));
 
+    response.data.on('end', () => {
+      log.info(`Got status code ${response.status}`);
+      res.download('/downloads/export.json');
+      log.info('After download');
+    });
+
+    /*
     const dataArray = JSON.parse(JSON.stringify(response.data));
 
-    dataTools.sortDataByDate(dataArray);
+    // dataTools.sortDataByDate(dataArray);
 
     if (req.query.anonymous) {
       for (const dataObject of dataArray) {
@@ -126,12 +137,14 @@ app.get('/export/:userid', auth, async (req, res) => {
 
       res.json(dataArray);
     } else {
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename=TidepoolExport.xlsx');
 
       await datatoworkbook.dataToWorkbook(dataArray, res);
       res.end();
     }
+    */
   } catch (error) {
     log.error(error);
 
@@ -152,7 +165,7 @@ app.get('/login', (req, res) => {
 
 app.post('/login', async (req, res) => {
   req.session.apiHost = (req.body.environment === 'local') ?
-    'http://localhost:8009' :
+    'https://ghhlnwfplr.localtunnel.me' :
     `https://${req.body.environment}-api.tidepool.org`;
 
   try {
