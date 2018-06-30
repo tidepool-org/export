@@ -54,9 +54,9 @@
     lodash "^4.2.0"
     to-fast-properties "^2.0.0"
 
-"@tidepool/data-tools@1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@tidepool/data-tools/-/data-tools-1.0.1.tgz#8d5fb4af58782d02ab679c3ac8abfae756fa3cff"
+"@tidepool/data-tools@1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@tidepool/data-tools/-/data-tools-1.0.2.tgz#606c0afd7a1b707dbaf7f9b89e569d4eeea28ec9"
   dependencies:
     JSONStream "1.1.2"
     chalk "1.1.3"
