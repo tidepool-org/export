@@ -44,7 +44,7 @@ const auth = (req, res, next) => {
     req.session.sessionToken = req.headers['x-tidepool-session-token'];
   }
 
-  if (!_.hasIn(req.session, 'sessionToken')) {
+  if (!_.hasIn(req.session, 'sessionToken') && !_.hasIn(req.query, 'restricted_token')) {
     return res.redirect('/login');
   }
 
@@ -52,11 +52,14 @@ const auth = (req, res, next) => {
 };
 
 function buildHeaders(requestSession) {
-  return {
-    headers: {
-      'x-tidepool-session-token': requestSession.sessionToken,
-    },
-  };
+  if (requestSession.sessionToken) {
+    return {
+      headers: {
+        'x-tidepool-session-token': requestSession.sessionToken,
+      },
+    };
+  }
+  return {};
 }
 
 function getPatientNameFromProfile(profile) {
@@ -112,6 +115,10 @@ app.get('/export/:env/:userid', auth, async (req, res) => {
   if (req.query.endDate) {
     queryData.endDate = req.query.endDate;
     logString += ` until ${req.query.endDate}`;
+  }
+  if (req.query.restricted_token) {
+    queryData.restricted_token = req.query.restricted_token;
+    logString += ' with restricted_token';
   }
   log.info(logString);
 
