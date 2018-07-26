@@ -40,7 +40,12 @@ const app = express();
 
 // Authentication and Authorization Middleware
 const auth = (req, res, next) => {
-  if (!(_.hasIn(req.session, 'sessionToken') && _.hasIn(req.session, 'apiHost'))) {
+  if (req.headers['x-tidepool-session-token']) {
+    log.info(`Set sessionToken: ${req.headers['x-tidepool-session-token']}`);
+    req.session.sessionToken = req.headers['x-tidepool-session-token'];
+  }
+
+  if (!_.hasIn(req.session, 'sessionToken') && !_.hasIn(req.query, 'restricted_token')) {
     return res.redirect('/login');
   }
 
@@ -48,11 +53,14 @@ const auth = (req, res, next) => {
 };
 
 function buildHeaders(requestSession) {
-  return {
-    headers: {
-      'x-tidepool-session-token': requestSession.sessionToken,
-    },
-  };
+  if (requestSession.sessionToken) {
+    return {
+      headers: {
+        'x-tidepool-session-token': requestSession.sessionToken,
+      },
+    };
+  }
+  return {};
 }
 
 function getPatientNameFromProfile(profile) {
@@ -93,10 +101,14 @@ if (config.httpsPort) {
 // The Health Check
 app.use('/status', require('express-healthcheck')());
 
-app.get('/export/:userid', auth, async (req, res) => {
+app.get('/export/:env/:userid', auth, async (req, res) => {
+  req.session.apiHost = (req.params.env === 'local') ?
+    'http://localhost:8009' :
+    `https://${req.params.env}-api.tidepool.org`;
+
   const queryData = [];
 
-  let logString = `User ${req.session.user.userid} requesting download for User ${req.params.userid}`;
+  let logString = `Requesting download for User ${req.params.userid}`;
   if (req.query.startDate) {
     queryData.startDate = req.query.startDate;
     logString += ` from ${req.query.startDate}`;
@@ -105,13 +117,17 @@ app.get('/export/:userid', auth, async (req, res) => {
     queryData.endDate = req.query.endDate;
     logString += ` until ${req.query.endDate}`;
   }
+  if (req.query.restricted_token) {
+    queryData.restricted_token = req.query.restricted_token;
+    logString += ' with restricted_token';
+  }
   log.info(logString);
 
   const requestConfig = buildHeaders(req.session);
   requestConfig.responseType = 'stream';
   const response = await axios.get(`${req.session.apiHost}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
   try {
-    log.debug(`User ${req.session.user.userid} downloading data for User ${req.params.userid}...`);
+    log.debug(`Downloading data for User ${req.params.userid}...`);
     response.data.pipe(fs.createWriteStream('/downloads/export.json'));
 
     response.data.on('end', () => {
@@ -215,8 +231,11 @@ app.get('/patients', auth, async (req, res) => {
       }
     }
 
+    const env = (_.isUndefined(req.session.apiHost.match(/.*:\/\/localhost.*/))) ? 'local' : req.session.apiHost.match(/.*:\/\/(\w+)-*/)[1];
+
     res.render('patients', {
       users: userList,
+      env,
     });
   } catch (error) {
     log.error('Error fetching patient list');
