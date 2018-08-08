@@ -2,22 +2,24 @@
 
 /* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
-const logMaker = require('./log.js');
-const _ = require('lodash');
-const fs = require('fs');
-const http = require('http');
-const https = require('https');
-const axios = require('axios');
-const express = require('express');
-const flash = require('express-flash');
-const bodyParser = require('body-parser');
-const session = require('express-session');
-const MemoryStore = require('memorystore')(session);
-const queryString = require('query-string');
+import _ from 'lodash';
+import fs from 'fs';
+import http from 'http';
+import https from 'https';
+import axios from 'axios';
+import express from 'express';
+import flash from 'express-flash';
+import bodyParser from 'body-parser';
+import session from 'express-session';
+import queryString from 'query-string';
+import tmp from 'tmp-promise';
 // const dataTools = require('@tidepool/data-tools');
-// const datatoworkbook = require('@tidepool/data-tools/bin/datatoworkbook');
+import datatoworkbook from '@tidepool/data-tools/bin/datatoworkbook';
+import logMaker from './log';
 
-const log = logMaker('app.js');
+const MemoryStore = require('memorystore')(session);
+
+const log = logMaker('app.js', { level: 'debug' });
 
 const config = {};
 config.httpPort = process.env.HTTP_PORT;
@@ -31,6 +33,7 @@ if (!config.httpPort) {
   config.httpPort = 3001;
 }
 config.sessionSecret = process.env.SESSION_SECRET;
+config.downloadDir = process.env.DOWNLOAD_DIR || '/downloads';
 if (_.isEmpty(config.sessionSecret)) {
   log.error('SESSION_SECRET config value required.');
   process.exit(1);
@@ -123,17 +126,47 @@ app.get('/export/:env/:userid', auth, async (req, res) => {
   }
   log.info(logString);
 
-  const requestConfig = buildHeaders(req.session);
-  requestConfig.responseType = 'stream';
-  const response = await axios.get(`${req.session.apiHost}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
   try {
+    const requestConfig = buildHeaders(req.session);
+    requestConfig.responseType = 'stream';
+    const response = await axios.get(`${req.session.apiHost}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
     log.debug(`Downloading data for User ${req.params.userid}...`);
-    response.data.pipe(fs.createWriteStream('/downloads/export.json'));
 
-    response.data.on('end', () => {
+    // TODO: Replace with async/withFile?
+    const jsonTmpFile = tmp.fileSync({ dir: config.downloadDir });
+    log.debug(`Writing to temp JSON file ${jsonTmpFile.name}`);
+    response.data.pipe(fs.createWriteStream(null, { fd: jsonTmpFile.fd }));
+
+    response.data.on('error', (err) => {
+      log.error(`Got error while downloading: ${err}`);
+      jsonTmpFile.removeCallback();
+    });
+
+    response.data.on('end', async () => {
       log.info(`Got status code ${response.status}`);
-      res.download('/downloads/export.json');
-      log.info('After download');
+      if (req.query.format === 'json') {
+        const downloadFilename = jsonTmpFile.name;
+        res.download(downloadFilename, 'TidepoolExport.json', (err) => {
+          if (err) {
+            log.error('Error during download');
+            log.error(err);
+            log.debug(res.headersSent);
+          } else {
+            log.info('After download');
+          }
+          jsonTmpFile.removeCallback();
+        });
+      } else {
+        const readStream = fs.createReadStream(jsonTmpFile.name);
+        try {
+          res.attachment('TidepoolExport.xlsx');
+          await datatoworkbook.dataToWorkbook(readStream, res);
+          res.end();
+        } catch (err) {
+          log.error(`Error reading JSON file: ${err}`);
+          log.error(jsonTmpFile);
+        }
+      }
     });
 
     /*
@@ -168,7 +201,7 @@ app.get('/export/:env/:userid', auth, async (req, res) => {
       res.redirect('/login');
     } else {
       res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
-      log.error(`500: ${JSON.stringify(error)}`);
+      log.error(`500: ${error}`);
     }
   }
 });
