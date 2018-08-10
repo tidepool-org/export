@@ -3,7 +3,6 @@
 /* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
 import _ from 'lodash';
-import fs from 'fs';
 import http from 'http';
 import https from 'https';
 import axios from 'axios';
@@ -12,8 +11,6 @@ import flash from 'express-flash';
 import bodyParser from 'body-parser';
 import session from 'express-session';
 import queryString from 'query-string';
-import tmp from 'tmp-promise';
-// const dataTools = require('@tidepool/data-tools');
 import datatoworkbook from '@tidepool/data-tools/bin/datatoworkbook';
 import logMaker from './log';
 
@@ -132,41 +129,20 @@ app.get('/export/:env/:userid', auth, async (req, res) => {
     const response = await axios.get(`${req.session.apiHost}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
     log.debug(`Downloading data for User ${req.params.userid}...`);
 
-    // TODO: Replace with async/withFile?
-    const jsonTmpFile = tmp.fileSync({ dir: config.downloadDir });
-    log.debug(`Writing to temp JSON file ${jsonTmpFile.name}`);
-    response.data.pipe(fs.createWriteStream(null, { fd: jsonTmpFile.fd }));
+    if (req.query.format === 'json') {
+      res.attachment('TidepoolExport.json');
+      response.data.pipe(res);
+    } else {
+      res.attachment('TidepoolExport.xlsx');
+      await datatoworkbook.streamToWorkbook(response.data, res);
+    }
 
     response.data.on('error', (err) => {
       log.error(`Got error while downloading: ${err}`);
-      jsonTmpFile.removeCallback();
     });
 
     response.data.on('end', async () => {
-      log.info(`Got status code ${response.status}`);
-      if (req.query.format === 'json') {
-        const downloadFilename = jsonTmpFile.name;
-        res.download(downloadFilename, 'TidepoolExport.json', (err) => {
-          if (err) {
-            log.error('Error during download');
-            log.error(err);
-            log.debug(res.headersSent);
-          } else {
-            log.info('After download');
-          }
-          jsonTmpFile.removeCallback();
-        });
-      } else {
-        const readStream = fs.createReadStream(jsonTmpFile.name);
-        try {
-          res.attachment('TidepoolExport.xlsx');
-          await datatoworkbook.dataToWorkbook(readStream, res);
-          res.end();
-        } catch (err) {
-          log.error(`Error reading JSON file: ${err}`);
-          log.error(jsonTmpFile);
-        }
-      }
+      res.end();
     });
 
     /*
