@@ -30,7 +30,6 @@ if (!config.httpPort) {
   config.httpPort = 3001;
 }
 config.sessionSecret = process.env.SESSION_SECRET;
-config.downloadDir = process.env.DOWNLOAD_DIR || '/downloads';
 if (_.isEmpty(config.sessionSecret)) {
   log.error('SESSION_SECRET config value required.');
   process.exit(1);
@@ -46,7 +45,7 @@ const auth = (req, res, next) => {
   }
 
   if (!_.hasIn(req.session, 'sessionToken') && !_.hasIn(req.query, 'restricted_token')) {
-    return res.redirect('/login');
+    return res.redirect('/export/login');
   }
 
   return next();
@@ -99,12 +98,12 @@ if (config.httpsPort) {
 }
 
 // The Health Check
-app.use('/status', require('express-healthcheck')());
+app.use('/export/status', require('express-healthcheck')());
 
 app.get('/export/:env/:userid', auth, async (req, res) => {
-  req.session.apiHost = (req.params.env === 'local') ?
-    'http://localhost:8009' :
-    `https://${req.params.env}-api.tidepool.org`;
+  req.session.apiHost = (req.params.env === 'local')
+    ? 'http://localhost:8009'
+    : `https://${req.params.env}-api.tidepool.org`;
 
   const queryData = [];
 
@@ -144,37 +143,11 @@ app.get('/export/:env/:userid', auth, async (req, res) => {
     response.data.on('end', async () => {
       res.end();
     });
-
-    /*
-    const dataArray = JSON.parse(JSON.stringify(response.data));
-
-    // dataTools.sortDataByDate(dataArray);
-
-    if (req.query.anonymous) {
-      for (const dataObject of dataArray) {
-        dataTools.stripData(dataObject);
-      }
-    }
-
-    if (req.query.format === 'json') {
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', 'attachment; filename=TidepoolExport.json');
-
-      res.json(dataArray);
-    } else {
-      res.setHeader('Content-Type',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=TidepoolExport.xlsx');
-
-      await datatoworkbook.dataToWorkbook(dataArray, res);
-      res.end();
-    }
-    */
   } catch (error) {
     log.error(error);
 
     if (error.response && error.response.statusCode === 403) {
-      res.redirect('/login');
+      res.redirect('/export/login');
     } else {
       res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
       log.error(`500: ${error}`);
@@ -182,16 +155,16 @@ app.get('/export/:env/:userid', auth, async (req, res) => {
   }
 });
 
-app.get('/login', (req, res) => {
+app.get('/export/login', (req, res) => {
   res.render('login', {
     flash: req.flash(),
   });
 });
 
-app.post('/login', async (req, res) => {
-  req.session.apiHost = (req.body.environment === 'local') ?
-    'https://ghhlnwfplr.localtunnel.me' :
-    `https://${req.body.environment}-api.tidepool.org`;
+app.post('/export/login', async (req, res) => {
+  req.session.apiHost = (req.body.environment === 'local')
+    ? 'http://localhost:8009'
+    : `https://${req.body.environment}-api.tidepool.org`;
 
   try {
     const response = await axios.post(`${req.session.apiHost}/auth/login`, null, {
@@ -203,21 +176,21 @@ app.post('/login', async (req, res) => {
     req.session.sessionToken = response.headers['x-tidepool-session-token'];
     req.session.user = response.data;
     log.info(`User ${req.session.user.userid} logged into ${req.session.apiHost}`);
-    res.redirect('/patients');
+    res.redirect('/export/patients');
   } catch (error) {
     log.error(`Incorrect username and/or password for ${req.session.apiHost}`);
     req.flash('error', 'Username and/or password are incorrect');
-    res.redirect('/login');
+    res.redirect('/export/login');
   }
 });
 
-app.get('/logout', (req, res) => {
+app.get('/export/logout', (req, res) => {
   delete req.session.sessionToken;
   delete req.session.apiHost;
-  res.redirect('/login');
+  res.redirect('/export/login');
 });
 
-app.get('/patients', auth, async (req, res) => {
+app.get('/export/patients', auth, async (req, res) => {
   const userList = [];
   try {
     const profileResponse = await axios.get(`${req.session.apiHost}/metadata/${req.session.user.userid}/profile`, buildHeaders(req.session));
@@ -250,12 +223,17 @@ app.get('/patients', auth, async (req, res) => {
     log.error('Error fetching patient list');
     log.error(error);
     req.flash('error', 'Error fetching patient list');
-    res.redirect('/login');
+    res.redirect('/export/login');
   }
 });
 
+app.get('/export', (req, res) => {
+  log.error(req.headers);
+  res.redirect('/export/patients');
+});
+
 app.get('/', (req, res) => {
-  res.redirect('/patients');
+  res.redirect('/export/patients');
 });
 
 if (config.httpPort) {
