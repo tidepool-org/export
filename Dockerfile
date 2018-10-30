@@ -1,5 +1,5 @@
 # Base node
-FROM node:10.8.0-alpine AS base
+FROM node:10.9.0-alpine AS base
 
 WORKDIR /app
 COPY package.json /app
@@ -30,6 +30,6 @@ COPY . /app
 
 USER node
 
-EXPOSE 3001
+EXPOSE 9300
 
 CMD node --max_old_space_size=400 -r esm ./app.js
