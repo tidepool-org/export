@@ -16,7 +16,7 @@ import logMaker from './log';
 
 const MemoryStore = require('memorystore')(session);
 
-const log = logMaker('app.js', { level: 'debug' });
+const log = logMaker('app.js');
 
 const config = {};
 config.httpPort = process.env.HTTP_PORT;
