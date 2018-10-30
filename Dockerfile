@@ -12,7 +12,8 @@ RUN yarn install --production
 # mv production node_modules aside
 RUN mv node_modules /root/prod_node_modules
 # install ALL node_modules, including 'devDependencies'
-RUN yarn install
+RUN yarn install \
+ && yarn cache clean
  
 #
 # ---- Test ----
