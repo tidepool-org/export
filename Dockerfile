@@ -33,4 +33,4 @@ USER node
 
 EXPOSE 9300
 
-CMD node --max_old_space_size=400 -r esm ./app.js
+CMD node -r esm ./app.js
