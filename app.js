@@ -189,21 +189,17 @@ app.get('/export/:userid', auth, async (req, res) => {
     }
 
     // Because we are in an async function, we need to  wait for the stream to complete
-    await new Promise((resolve, reject) => {
-      response.data.on('end', resolve);
-      response.data.on('error', reject);
-    });
+    try {
+      await new Promise((resolve, reject) => {
+        response.data.on('end', resolve);
+        response.data.on('error', err => reject(err));
+      });
 
-    response.data.on('error', (err) => {
-      log.error(`Got error while downloading: ${err}`);
-    });
-
-    response.data.on('end', async () => {
-      res.end();
-    });
+      log.debug(`Finished downloading data for User ${req.params.userid}`);
+    } catch (e) {
+      log.error(`Got error while downloading: ${e}`);
+    }
   } catch (error) {
-    log.error(error);
-
     if (error.response && error.response.statusCode === 403) {
       res.redirect('/export/login');
     } else {
