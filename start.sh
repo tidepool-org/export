@@ -8,4 +8,4 @@ nvm use --delete-prefix "${START_NODE_VERSION}"
 
 . config/env.sh
 
-exec node --max_old_space_size=400 -r esm ./app.js
+exec node -r esm ./app.js
