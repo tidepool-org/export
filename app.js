@@ -11,12 +11,12 @@ import flash from 'express-flash';
 import bodyParser from 'body-parser';
 import session from 'express-session';
 import queryString from 'query-string';
-import datatoworkbook from '@tidepool/data-tools/bin/datatoworkbook';
+import dataTools from '@tidepool/data-tools';
 import logMaker from './log';
 
 const MemoryStore = require('memorystore')(session);
 
-const log = logMaker('app.js');
+const log = logMaker('app.js', { level: process.env.DEBUG_LEVEL || 'info' });
 
 const config = {};
 config.httpPort = process.env.HTTP_PORT;
@@ -176,11 +176,23 @@ app.get('/export/:userid', auth, async (req, res) => {
 
     if (req.query.format === 'json') {
       res.attachment('TidepoolExport.json');
-      response.data.pipe(res);
+
+      response.data
+        .pipe(res);
     } else {
       res.attachment('TidepoolExport.xlsx');
-      await datatoworkbook.streamToWorkbook(response.data, res);
+
+      response.data
+        .pipe(dataTools.jsonParser())
+        .pipe(dataTools.tidepoolProcessor())
+        .pipe(dataTools.xlsxStreamWriter(res));
     }
+
+    // Because we are in an async function, we need to  wait for the stream to complete
+    await new Promise((resolve, reject) => {
+      response.data.on('end', resolve);
+      response.data.on('error', reject);
+    });
 
     response.data.on('error', (err) => {
       log.error(`Got error while downloading: ${err}`);
