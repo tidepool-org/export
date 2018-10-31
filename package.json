@@ -8,8 +8,7 @@
   },
   "scripts": {
     "lint": "eslint --cache --format=node_modules/eslint-formatter-pretty .",
-    "lint-fix": "npm run lint -- --fix",
-    "test": "echo '*** TESTS REQUIRED ***'"
+    "lint-fix": "npm run lint -- --fix"
   },
   "license": "BSD-2-Clause",
   "description": "Service to export data from the Tidepool to various file formats",

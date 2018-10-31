@@ -94,14 +94,14 @@ app.get('/export/login', (req, res) => {
 
 app.post('/export/login', async (req, res) => {
   try {
-    const response = await axios.post(`${process.env.API_HOST}/auth/login`, null, {
+    const loginResponse = await axios.post(`${process.env.API_HOST}/auth/login`, null, {
       auth: {
         username: req.body.username,
         password: req.body.password,
       },
     });
-    req.session.sessionToken = response.headers['x-tidepool-session-token'];
-    req.session.user = response.data;
+    req.session.sessionToken = loginResponse.headers['x-tidepool-session-token'];
+    req.session.user = loginResponse.data;
     log.info(`User ${req.session.user.userid} logged into ${process.env.API_HOST}`);
     res.redirect('/export/patients');
   } catch (error) {
@@ -171,18 +171,18 @@ app.get('/export/:userid', auth, async (req, res) => {
   try {
     const requestConfig = buildHeaders(req.session);
     requestConfig.responseType = 'stream';
-    const response = await axios.get(`${process.env.API_HOST}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
+    const dataResponse = await axios.get(`${process.env.API_HOST}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
     log.debug(`Downloading data for User ${req.params.userid}...`);
 
     if (req.query.format === 'json') {
       res.attachment('TidepoolExport.json');
 
-      response.data
+      dataResponse.data
         .pipe(res);
     } else {
       res.attachment('TidepoolExport.xlsx');
 
-      response.data
+      dataResponse.data
         .pipe(dataTools.jsonParser())
         .pipe(dataTools.tidepoolProcessor())
         .pipe(dataTools.xlsxStreamWriter(res));
@@ -191,8 +191,8 @@ app.get('/export/:userid', auth, async (req, res) => {
     // Because we are in an async function, we need to  wait for the stream to complete
     try {
       await new Promise((resolve, reject) => {
-        response.data.on('end', resolve);
-        response.data.on('error', err => reject(err));
+        dataResponse.data.on('end', resolve);
+        dataResponse.data.on('error', err => reject(err));
       });
 
       log.debug(`Finished downloading data for User ${req.params.userid}`);
@@ -200,7 +200,7 @@ app.get('/export/:userid', auth, async (req, res) => {
       log.error(`Got error while downloading: ${e}`);
     }
   } catch (error) {
-    if (error.response && error.response.statusCode === 403) {
+    if (error.dataResponse && error.dataResponse.statusCode === 403) {
       res.redirect('/export/login');
     } else {
       res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
