@@ -1,6 +1,6 @@
 {
   "name": "tidepool-data-export-service",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "main": "app.js",
   "repository": {
     "type": "git",
@@ -11,31 +11,33 @@
     "lint-fix": "npm run lint -- --fix"
   },
   "license": "BSD-2-Clause",
+  "description": "Service to export data from the Tidepool to various file formats",
+  "author": "Lennart Goedhart <lennart@tidepool.org>",
+  "private": false,
   "dependencies": {
-    "@tidepool/data-tools": "1.0.2",
-    "JSONStream": "1.3.1",
-    "axios": "0.17.1",
-    "body-parser": "1.18.2",
+    "@tidepool/data-tools": "2.0.0",
+    "axios": "0.18.0",
+    "body-parser": "1.18.3",
     "bunyan": "1.8.12",
-    "exceljs": "0.7.1",
-    "express": "4.16.2",
+    "esm": "3.0.84",
+    "express": "4.16.4",
     "express-flash": "0.0.2",
     "express-healthcheck": "0.1.0",
     "express-session": "1.15.6",
-    "lodash": "4.17.4",
+    "lodash": "4.17.11",
     "memorystore": "1.6.0",
-    "pug": "2.0.0-rc.4",
-    "query-string": "5.0.1"
+    "pug": "2.0.3",
+    "query-string": "6.2.0"
   },
   "devDependencies": {
-    "babel-eslint": "8.0.2",
-    "eslint": "4.11.0",
-    "eslint-config-airbnb": "16.1.0",
+    "babel-eslint": "10.0.1",
+    "eslint": "5.8.0",
+    "eslint-config-airbnb": "17.1.0",
     "eslint-formatter-pretty": "1.3.0",
-    "eslint-plugin-import": "2.8.0",
-    "eslint-plugin-jsx-a11y": "6.0.2",
-    "eslint-plugin-lodash": "2.5.0",
-    "eslint-plugin-promise": "3.6.0",
-    "eslint-plugin-react": "7.5.1"
+    "eslint-plugin-import": "2.14.0",
+    "eslint-plugin-jsx-a11y": "6.1.2",
+    "eslint-plugin-lodash": "3.1.0",
+    "eslint-plugin-promise": "4.0.1",
+    "eslint-plugin-react": "7.11.1"
   }
 }

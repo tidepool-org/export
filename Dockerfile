@@ -1,5 +1,5 @@
 # Base node
-FROM node:8.9.1-alpine AS base
+FROM node:10.9.0-alpine AS base
 
 WORKDIR /app
 COPY package.json /app
@@ -12,7 +12,8 @@ RUN yarn install --production
 # mv production node_modules aside
 RUN mv node_modules /root/prod_node_modules
 # install ALL node_modules, including 'devDependencies'
-RUN yarn install
+RUN yarn install \
+ && yarn cache clean
  
 #
 # ---- Test ----
@@ -30,6 +31,6 @@ COPY . /app
 
 USER node
 
-EXPOSE 3001
+EXPOSE 9300
 
-CMD node ./app.js
+CMD node -r esm ./app.js

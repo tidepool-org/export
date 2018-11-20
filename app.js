@@ -2,21 +2,21 @@
 
 /* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
-const logMaker = require('./log.js');
-const _ = require('lodash');
-const http = require('http');
-const https = require('https');
-const axios = require('axios');
-const express = require('express');
-const flash = require('express-flash');
-const bodyParser = require('body-parser');
-const session = require('express-session');
-const MemoryStore = require('memorystore')(session);
-const queryString = require('query-string');
-const dataTools = require('@tidepool/data-tools');
-const datatoworkbook = require('@tidepool/data-tools/bin/datatoworkbook');
+import _ from 'lodash';
+import http from 'http';
+import https from 'https';
+import axios from 'axios';
+import express from 'express';
+import flash from 'express-flash';
+import bodyParser from 'body-parser';
+import session from 'express-session';
+import queryString from 'query-string';
+import dataTools from '@tidepool/data-tools';
+import logMaker from './log';
 
-const log = logMaker('app.js');
+const MemoryStore = require('memorystore')(session);
+
+const log = logMaker('app.js', { level: process.env.DEBUG_LEVEL || 'info' });
 
 const config = {};
 config.httpPort = process.env.HTTP_PORT;
@@ -27,7 +27,7 @@ if (process.env.HTTPS_CONFIG) {
   config.httpsConfig = {};
 }
 if (!config.httpPort) {
-  config.httpPort = 3001;
+  config.httpPort = 9300;
 }
 config.sessionSecret = process.env.SESSION_SECRET;
 if (_.isEmpty(config.sessionSecret)) {
@@ -45,7 +45,7 @@ const auth = (req, res, next) => {
   }
 
   if (!_.hasIn(req.session, 'sessionToken') && !_.hasIn(req.query, 'restricted_token')) {
-    return res.redirect('/login');
+    return res.redirect('/export/login');
   }
 
   return next();
@@ -83,28 +83,74 @@ app.use(bodyParser.urlencoded({
   extended: false,
 }));
 
-// If we run over SSL, redirect any non-SSL requests to HTTPS
-if (config.httpsPort) {
-  app.use((req, res, next) => {
-    // The /status endpoint can be served over HTTP
-    if (req.secure || req.url === '/status') {
-      next();
-    } else {
-      log.info('Redirecting HTTP request to HTTPS');
-      const httpsHost = req.headers.host.replace(/:\d+/, `:${config.httpsPort}`);
-      res.redirect(`https://${httpsHost}${req.url}`);
-    }
-  });
-}
-
 // The Health Check
-app.use('/status', require('express-healthcheck')());
+app.use('/export/status', require('express-healthcheck')());
 
-app.get('/export/:env/:userid', auth, async (req, res) => {
-  req.session.apiHost = (req.params.env === 'local') ?
-    'http://localhost:8009' :
-    `https://${req.params.env}-api.tidepool.org`;
+app.get('/export/login', (req, res) => {
+  res.render('login', {
+    flash: req.flash(),
+  });
+});
 
+app.post('/export/login', async (req, res) => {
+  try {
+    const loginResponse = await axios.post(`${process.env.API_HOST}/auth/login`, null, {
+      auth: {
+        username: req.body.username,
+        password: req.body.password,
+      },
+    });
+    req.session.sessionToken = loginResponse.headers['x-tidepool-session-token'];
+    req.session.user = loginResponse.data;
+    log.info(`User ${req.session.user.userid} logged into ${process.env.API_HOST}`);
+    res.redirect('/export/patients');
+  } catch (error) {
+    log.error(`Incorrect username and/or password for ${process.env.API_HOST}`);
+    req.flash('error', 'Username and/or password are incorrect');
+    res.redirect('/export/login');
+  }
+});
+
+app.get('/export/logout', (req, res) => {
+  delete req.session.sessionToken;
+  res.redirect('/export/login');
+});
+
+app.get('/export/patients', auth, async (req, res) => {
+  const userList = [];
+  try {
+    const profileResponse = await axios.get(`${process.env.API_HOST}/metadata/${req.session.user.userid}/profile`, buildHeaders(req.session));
+    userList.push({
+      userid: req.session.user.userid,
+      fullName: getPatientNameFromProfile(profileResponse.data),
+    });
+  } catch (error) {
+    log.debug('Could not read profile. Probably a clinician account');
+  }
+
+  try {
+    const userListResponse = await axios.get(`${process.env.API_HOST}/metadata/users/${req.session.user.userid}/users`, buildHeaders(req.session));
+    for (const trustingUser of userListResponse.data) {
+      if (trustingUser.trustorPermissions && trustingUser.trustorPermissions.view) {
+        userList.push({
+          userid: trustingUser.userid,
+          fullName: getPatientNameFromProfile(trustingUser.profile),
+        });
+      }
+    }
+
+    res.render('patients', {
+      users: userList,
+    });
+  } catch (error) {
+    log.error('Error fetching patient list');
+    log.error(error);
+    req.flash('error', 'Error fetching patient list');
+    res.redirect('/export/login');
+  }
+});
+
+app.get('/export/:userid', auth, async (req, res) => {
   const queryData = [];
 
   let logString = `Requesting download for User ${req.params.userid}`;
@@ -122,118 +168,54 @@ app.get('/export/:env/:userid', auth, async (req, res) => {
   }
   log.info(logString);
 
-  const response = await axios.get(`${req.session.apiHost}/data/${req.params.userid}?${queryString.stringify(queryData)}`, buildHeaders(req.session));
   try {
+    const requestConfig = buildHeaders(req.session);
+    requestConfig.responseType = 'stream';
+    const dataResponse = await axios.get(`${process.env.API_HOST}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
     log.debug(`Downloading data for User ${req.params.userid}...`);
 
-    const dataArray = JSON.parse(JSON.stringify(response.data));
+    if (req.query.format === 'json') {
+      res.attachment('TidepoolExport.json');
 
-    dataTools.sortDataByDate(dataArray);
+      dataResponse.data
+        .pipe(res);
+    } else {
+      res.attachment('TidepoolExport.xlsx');
 
-    if (req.query.anonymous) {
-      for (const dataObject of dataArray) {
-        dataTools.stripData(dataObject);
-      }
+      dataResponse.data
+        .pipe(dataTools.jsonParser())
+        .pipe(dataTools.tidepoolProcessor())
+        .pipe(dataTools.xlsxStreamWriter(res));
     }
 
-    if (req.query.format === 'json') {
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', 'attachment; filename=TidepoolExport.json');
+    // Because we are in an async function, we need to  wait for the stream to complete
+    try {
+      await new Promise((resolve, reject) => {
+        dataResponse.data.on('end', resolve);
+        dataResponse.data.on('error', err => reject(err));
+      });
 
-      res.json(dataArray);
-    } else {
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=TidepoolExport.xlsx');
-
-      await datatoworkbook.dataToWorkbook(dataArray, res);
-      res.end();
+      log.debug(`Finished downloading data for User ${req.params.userid}`);
+    } catch (e) {
+      log.error(`Got error while downloading: ${e}`);
     }
   } catch (error) {
-    log.error(error);
-
-    if (error.response && error.response.statusCode === 403) {
-      res.redirect('/login');
+    if (error.dataResponse && error.dataResponse.statusCode === 403) {
+      res.redirect('/export/login');
     } else {
       res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
-      log.error(`500: ${JSON.stringify(error)}`);
+      log.error(`500: ${error}`);
     }
   }
 });
 
-app.get('/login', (req, res) => {
-  res.render('login', {
-    flash: req.flash(),
-  });
-});
-
-app.post('/login', async (req, res) => {
-  req.session.apiHost = (req.body.environment === 'local') ?
-    'http://localhost:8009' :
-    `https://${req.body.environment}-api.tidepool.org`;
-
-  try {
-    const response = await axios.post(`${req.session.apiHost}/auth/login`, null, {
-      auth: {
-        username: req.body.username,
-        password: req.body.password,
-      },
-    });
-    req.session.sessionToken = response.headers['x-tidepool-session-token'];
-    req.session.user = response.data;
-    log.info(`User ${req.session.user.userid} logged into ${req.session.apiHost}`);
-    res.redirect('/patients');
-  } catch (error) {
-    log.error(`Incorrect username and/or password for ${req.session.apiHost}`);
-    req.flash('error', 'Username and/or password are incorrect');
-    res.redirect('/login');
-  }
-});
-
-app.get('/logout', (req, res) => {
-  delete req.session.sessionToken;
-  delete req.session.apiHost;
-  res.redirect('/login');
-});
-
-app.get('/patients', auth, async (req, res) => {
-  const userList = [];
-  try {
-    const profileResponse = await axios.get(`${req.session.apiHost}/metadata/${req.session.user.userid}/profile`, buildHeaders(req.session));
-    userList.push({
-      userid: req.session.user.userid,
-      fullName: getPatientNameFromProfile(profileResponse.data),
-    });
-  } catch (error) {
-    log.debug('Could not read profile. Probably a clinician account');
-  }
-
-  try {
-    const userListResponse = await axios.get(`${req.session.apiHost}/metadata/users/${req.session.user.userid}/users`, buildHeaders(req.session));
-    for (const trustingUser of userListResponse.data) {
-      if (trustingUser.trustorPermissions && trustingUser.trustorPermissions.view) {
-        userList.push({
-          userid: trustingUser.userid,
-          fullName: getPatientNameFromProfile(trustingUser.profile),
-        });
-      }
-    }
-
-    const env = (_.isUndefined(req.session.apiHost.match(/.*:\/\/localhost.*/))) ? 'local' : req.session.apiHost.match(/.*:\/\/(\w+)-*/)[1];
-
-    res.render('patients', {
-      users: userList,
-      env,
-    });
-  } catch (error) {
-    log.error('Error fetching patient list');
-    log.error(error);
-    req.flash('error', 'Error fetching patient list');
-    res.redirect('/login');
-  }
+app.get('/export', (req, res) => {
+  log.error(req.headers);
+  res.redirect('/export/patients');
 });
 
 app.get('/', (req, res) => {
-  res.redirect('/patients');
+  res.redirect('/export/patients');
 });
 
 if (config.httpPort) {
