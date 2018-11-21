@@ -3,6 +3,7 @@
 /* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
 import _ from 'lodash';
+import fs from 'fs';
 import http from 'http';
 import https from 'https';
 import axios from 'axios';
@@ -18,11 +19,21 @@ const MemoryStore = require('memorystore')(session);
 
 const log = logMaker('app.js', { level: process.env.DEBUG_LEVEL || 'info' });
 
+function maybeReplaceWithContentsOfFile(obj, field) {
+  const potentialFile = obj[field];
+  if (potentialFile != null && fs.existsSync(potentialFile)) {
+    // eslint-disable-next-line no-param-reassign
+    obj[field] = fs.readFileSync(potentialFile).toString();
+  }
+}
+
 const config = {};
 config.httpPort = process.env.HTTP_PORT;
 config.httpsPort = process.env.HTTPS_PORT;
 if (process.env.HTTPS_CONFIG) {
   config.httpsConfig = JSON.parse(process.env.HTTPS_CONFIG);
+  maybeReplaceWithContentsOfFile(config.httpsConfig, 'key');
+  maybeReplaceWithContentsOfFile(config.httpsConfig, 'cert');
 } else {
   config.httpsConfig = {};
 }
