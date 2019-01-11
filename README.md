@@ -2,7 +2,7 @@
 
 The Tidepool export service.
 
-[![Build Status](https://travis-ci.org/tidepool-org/export.png)](https://travis-ci.org/tidepool-org/export)
+[![Build Status](https://travis-ci.com/tidepool-org/export.png)](https://travis-ci.com/tidepool-org/export)
 [![Code Climate](https://codeclimate.com/github/tidepool-org/export/badges/gpa.svg)](https://codeclimate.com/github/tidepool-org/export)
 [![Issue Count](https://codeclimate.com/github/tidepool-org/export/badges/issue_count.svg)](https://codeclimate.com/github/tidepool-org/export)
 [![Docker Image](https://images.microbadger.com/badges/image/tidepool/export.svg)](http://microbadger.com/images/tidepool/export "Get your own image badge on microbadger.com")
