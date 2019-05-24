@@ -45,6 +45,8 @@ if (_.isEmpty(config.sessionSecret)) {
   log.error('SESSION_SECRET config value required.');
   process.exit(1);
 }
+config.exportTimeout = _.defaultTo(parseInt(process.env.EXPORT_TIMEOUT, 10), 120000);
+log.info(`Export download timeout set to ${config.exportTimeout} ms`);
 
 const app = express();
 
@@ -162,6 +164,11 @@ app.get('/export/patients', auth, async (req, res) => {
 });
 
 app.get('/export/:userid', auth, async (req, res) => {
+  // Set the timeout for the request. Make it 10 seconds longer than
+  // our configured timeout to give the service time to cancel the API data
+  // request, and close the outgoing data stream cleanly.
+  req.setTimeout(config.exportTimeout + 10000);
+
   const queryData = [];
 
   let logString = `Requesting download for User ${req.params.userid}`;
@@ -180,8 +187,11 @@ app.get('/export/:userid', auth, async (req, res) => {
   log.info(logString);
 
   try {
+    const cancelRequest = axios.CancelToken.source();
+
     const requestConfig = buildHeaders(req.session);
     requestConfig.responseType = 'stream';
+    requestConfig.cancelToken = cancelRequest.token;
     const dataResponse = await axios.get(`${process.env.API_HOST}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
     log.debug(`Downloading data for User ${req.params.userid}...`);
 
@@ -199,17 +209,30 @@ app.get('/export/:userid', auth, async (req, res) => {
         .pipe(dataTools.xlsxStreamWriter(res));
     }
 
-    // Because we are in an async function, we need to  wait for the stream to complete
+    // Create a timeout timer that will let us cancel the incoming request gracefully if
+    // it's taking too long to fulfil.
+    const timer = setTimeout(() => {
+      res.emit('timeout', config.exportTimeout);
+    }, config.exportTimeout);
+    res.on('timeout', async () => {
+      log.warn('Data export request took too long to complete. Cancelling the request');
+      cancelRequest.cancel();
+    });
+
+    // Wait for the stream to complete, by wrapping the stream completion events in a Promise.
     try {
       await new Promise((resolve, reject) => {
         dataResponse.data.on('end', resolve);
         dataResponse.data.on('error', err => reject(err));
+        res.on('error', err => reject(err));
       });
 
       log.debug(`Finished downloading data for User ${req.params.userid}`);
     } catch (e) {
       log.error(`Got error while downloading: ${e}`);
     }
+
+    clearTimeout(timer);
   } catch (error) {
     if (error.dataResponse && error.dataResponse.statusCode === 403) {
       res.redirect('/export/login');
