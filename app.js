@@ -14,6 +14,8 @@ import session from 'express-session';
 import queryString from 'query-string';
 import dataTools from '@tidepool/data-tools';
 import logMaker from './log';
+import * as CSV from 'csv-string';
+import es from 'event-stream';
 
 const MemoryStore = require('memorystore')(session);
 
@@ -190,13 +192,25 @@ app.get('/export/:userid', auth, async (req, res) => {
 
       dataResponse.data
         .pipe(res);
-    } else {
+    } else if(req.query.format === 'xlsx') {
       res.attachment('TidepoolExport.xlsx');
 
       dataResponse.data
         .pipe(dataTools.jsonParser())
         .pipe(dataTools.tidepoolProcessor())
         .pipe(dataTools.xlsxStreamWriter(res));
+    } else {
+      // export as csv
+      res.attachment('TidepoolExport.csv');
+      res.write(CSV.stringify(dataTools.allFields));
+
+      dataResponse.data
+        .pipe(dataTools.jsonParser())
+        .pipe(dataTools.tidepoolProcessor())
+        .pipe(es.mapSync(
+            data => CSV.stringify(dataTools.allFields.map(field => data[field] || '')),
+          ))
+        .pipe(res);
     }
 
     // Because we are in an async function, we need to  wait for the stream to complete
