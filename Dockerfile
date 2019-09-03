@@ -15,7 +15,7 @@ COPY yarn.lock .
 RUN \
   # Build and separate all dependancies required for production
   yarn install --production && cp -R node_modules production_node_modules \
-  # Build all modules, including `devDependancies`
+  # Build all modules, including `devDependencies`
   && yarn install \
   && yarn cache clean
 
@@ -33,8 +33,7 @@ CMD node -r esm ./app.js
 
 
 ### Stage 4 - Test
-FROM dependencies as test
-COPY . /app
+FROM development as test
 RUN yarn lint
 
 
