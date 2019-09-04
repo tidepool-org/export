@@ -8,14 +8,10 @@ import http from 'http';
 import https from 'https';
 import axios from 'axios';
 import express from 'express';
-import flash from 'express-flash';
 import bodyParser from 'body-parser';
-import session from 'express-session';
 import queryString from 'query-string';
 import dataTools from '@tidepool/data-tools';
 import logMaker from './log';
-
-const MemoryStore = require('memorystore')(session);
 
 const log = logMaker('app.js', { level: process.env.DEBUG_LEVEL || 'info' });
 
@@ -40,58 +36,28 @@ if (process.env.HTTPS_CONFIG) {
 if (!config.httpPort) {
   config.httpPort = 9300;
 }
-config.sessionSecret = process.env.SESSION_SECRET;
-if (_.isEmpty(config.sessionSecret)) {
-  log.error('SESSION_SECRET config value required.');
-  process.exit(1);
-}
 config.exportTimeout = _.defaultTo(parseInt(process.env.EXPORT_TIMEOUT, 10), 120000);
 log.info(`Export download timeout set to ${config.exportTimeout} ms`);
 
 const app = express();
 
-// Authentication and Authorization Middleware
-const auth = (req, res, next) => {
-  if (req.headers['x-tidepool-session-token']) {
-    log.info(`Set sessionToken: ${req.headers['x-tidepool-session-token']}`);
-    req.session.sessionToken = req.headers['x-tidepool-session-token'];
-  }
-
-  if (!_.hasIn(req.session, 'sessionToken') && !_.hasIn(req.query, 'restricted_token')) {
-    return res.redirect('/export/login');
-  }
-
-  return next();
-};
-
-function buildHeaders(requestSession) {
-  if (requestSession.sessionToken) {
+function buildHeaders(request) {
+  if (request.headers['x-tidepool-session-token']) {
     return {
       headers: {
-        'x-tidepool-session-token': requestSession.sessionToken,
+        'x-tidepool-session-token': request.headers['x-tidepool-session-token'],
       },
     };
   }
   return {};
 }
 
+/*
 function getPatientNameFromProfile(profile) {
   return (profile.patient.fullName) ? profile.patient.fullName : profile.fullName;
 }
+*/
 
-app.set('view engine', 'pug');
-app.use(session({
-  store: new MemoryStore({
-    checkPeriod: 86400000, // Prune expired entries every 24h
-  }),
-  secret: config.sessionSecret,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: config.httpsConfig,
-  },
-}));
-app.use(flash());
 app.use(bodyParser.urlencoded({
   extended: false,
 }));
@@ -99,71 +65,7 @@ app.use(bodyParser.urlencoded({
 // The Health Check
 app.use('/export/status', require('express-healthcheck')());
 
-app.get('/export/login', (req, res) => {
-  res.render('login', {
-    flash: req.flash(),
-  });
-});
-
-app.post('/export/login', async (req, res) => {
-  try {
-    const loginResponse = await axios.post(`${process.env.API_HOST}/auth/login`, null, {
-      auth: {
-        username: req.body.username,
-        password: req.body.password,
-      },
-    });
-    req.session.sessionToken = loginResponse.headers['x-tidepool-session-token'];
-    req.session.user = loginResponse.data;
-    log.info(`User ${req.session.user.userid} logged into ${process.env.API_HOST}`);
-    res.redirect('/export/patients');
-  } catch (error) {
-    log.error(`Incorrect username and/or password for ${process.env.API_HOST}`);
-    req.flash('error', 'Username and/or password are incorrect');
-    res.redirect('/export/login');
-  }
-});
-
-app.get('/export/logout', (req, res) => {
-  delete req.session.sessionToken;
-  res.redirect('/export/login');
-});
-
-app.get('/export/patients', auth, async (req, res) => {
-  const userList = [];
-  try {
-    const profileResponse = await axios.get(`${process.env.API_HOST}/metadata/${req.session.user.userid}/profile`, buildHeaders(req.session));
-    userList.push({
-      userid: req.session.user.userid,
-      fullName: getPatientNameFromProfile(profileResponse.data),
-    });
-  } catch (error) {
-    log.debug('Could not read profile. Probably a clinician account');
-  }
-
-  try {
-    const userListResponse = await axios.get(`${process.env.API_HOST}/metadata/users/${req.session.user.userid}/users`, buildHeaders(req.session));
-    for (const trustingUser of userListResponse.data) {
-      if (trustingUser.trustorPermissions && trustingUser.trustorPermissions.view) {
-        userList.push({
-          userid: trustingUser.userid,
-          fullName: getPatientNameFromProfile(trustingUser.profile),
-        });
-      }
-    }
-
-    res.render('patients', {
-      users: userList,
-    });
-  } catch (error) {
-    log.error('Error fetching patient list');
-    log.error(error);
-    req.flash('error', 'Error fetching patient list');
-    res.redirect('/export/login');
-  }
-});
-
-app.get('/export/:userid', auth, async (req, res) => {
+app.get('/export/:userid', async (req, res) => {
   // Set the timeout for the request. Make it 10 seconds longer than
   // our configured timeout to give the service time to cancel the API data
   // request, and close the outgoing data stream cleanly.
@@ -172,6 +74,9 @@ app.get('/export/:userid', auth, async (req, res) => {
   const queryData = [];
 
   let logString = `Requesting download for User ${req.params.userid}`;
+  if (req.query.bgUnits) {
+    logString += ` in ${req.query.bgUnits}`;
+  }
   if (req.query.startDate) {
     queryData.startDate = req.query.startDate;
     logString += ` from ${req.query.startDate}`;
@@ -187,9 +92,13 @@ app.get('/export/:userid', auth, async (req, res) => {
   log.info(logString);
 
   try {
+    // TODO: code is here to save file as `YYYY-MM-DD_Full_Name`, per [BACK-819]
+    // const profileResponse = await axios.get(`${process.env.API_HOST}/metadata/${req.params.userid}/profile`, buildHeaders(req));
+    // const fullName = getPatientNameFromProfile(profileResponse.data);
+
     const cancelRequest = axios.CancelToken.source();
 
-    const requestConfig = buildHeaders(req.session);
+    const requestConfig = buildHeaders(req);
     requestConfig.responseType = 'stream';
     requestConfig.cancelToken = cancelRequest.token;
     const dataResponse = await axios.get(`${process.env.API_HOST}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
@@ -205,7 +114,7 @@ app.get('/export/:userid', auth, async (req, res) => {
 
       dataResponse.data
         .pipe(dataTools.jsonParser())
-        .pipe(dataTools.tidepoolProcessor())
+        .pipe(dataTools.tidepoolProcessor({ bgUnits: req.query.bgUnits || 'mmol/L' }))
         .pipe(dataTools.xlsxStreamWriter(res));
     }
 
@@ -223,8 +132,8 @@ app.get('/export/:userid', auth, async (req, res) => {
     try {
       await new Promise((resolve, reject) => {
         dataResponse.data.on('end', resolve);
-        dataResponse.data.on('error', err => reject(err));
-        res.on('error', err => reject(err));
+        dataResponse.data.on('error', (err) => reject(err));
+        res.on('error', (err) => reject(err));
       });
 
       log.debug(`Finished downloading data for User ${req.params.userid}`);
@@ -234,22 +143,14 @@ app.get('/export/:userid', auth, async (req, res) => {
 
     clearTimeout(timer);
   } catch (error) {
-    if (error.dataResponse && error.dataResponse.statusCode === 403) {
-      res.redirect('/export/login');
+    if (error.response && error.response.status === 403) {
+      res.status(error.response.status).send('Not authorized to export data for this user.');
+      log.error(`${error.response.status}: ${error}`);
     } else {
       res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
       log.error(`500: ${error}`);
     }
   }
-});
-
-app.get('/export', (req, res) => {
-  log.error(req.headers);
-  res.redirect('/export/patients');
-});
-
-app.get('/', (req, res) => {
-  res.redirect('/export/patients');
 });
 
 if (config.httpPort) {
