@@ -1,5 +1,3 @@
-#!/usr/bin/env node --harmony
-
 /* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
 import _ from 'lodash';
@@ -52,12 +50,6 @@ function buildHeaders(request) {
   return {};
 }
 
-/*
-function getPatientNameFromProfile(profile) {
-  return (profile.patient.fullName) ? profile.patient.fullName : profile.fullName;
-}
-*/
-
 app.use(bodyParser.urlencoded({
   extended: false,
 }));
@@ -92,10 +84,6 @@ app.get('/export/:userid', async (req, res) => {
   log.info(logString);
 
   try {
-    // TODO: code is here to save file as `YYYY-MM-DD_Full_Name`, per [BACK-819]
-    // const profileResponse = await axios.get(`${process.env.API_HOST}/metadata/${req.params.userid}/profile`, buildHeaders(req));
-    // const fullName = getPatientNameFromProfile(profileResponse.data);
-
     const cancelRequest = axios.CancelToken.source();
 
     const requestConfig = buildHeaders(req);
