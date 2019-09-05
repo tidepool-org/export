@@ -92,18 +92,23 @@ app.get('/export/:userid', async (req, res) => {
     const dataResponse = await axios.get(`${process.env.API_HOST}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
     log.debug(`Downloading data for User ${req.params.userid}...`);
 
+    const processorConfig = { bgUnits: req.query.bgUnits || 'mmol/L' };
+
     if (req.query.format === 'json') {
       res.attachment('TidepoolExport.json');
 
       dataResponse.data
+        .pipe(dataTools.jsonParser())
+        .pipe(dataTools.tidepoolProcessor(processorConfig))
+        .pipe(dataTools.jsonStreamWriter())
         .pipe(res);
     } else {
       res.attachment('TidepoolExport.xlsx');
 
       dataResponse.data
         .pipe(dataTools.jsonParser())
-        .pipe(dataTools.tidepoolProcessor({ bgUnits: req.query.bgUnits || 'mmol/L' }))
-        .pipe(dataTools.xlsxStreamWriter(res));
+        .pipe(dataTools.tidepoolProcessor(processorConfig))
+        .pipe(dataTools.xlsxStreamWriter(res, processorConfig));
     }
 
     // Create a timeout timer that will let us cancel the incoming request gracefully if

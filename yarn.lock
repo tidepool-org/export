@@ -97,10 +97,10 @@
     lodash "^4.17.13"
     to-fast-properties "^2.0.0"
 
-"@tidepool/data-tools@2.1.0":
-  version "2.1.0"
-  resolved "https://registry.npmjs.org/@tidepool/data-tools/-/data-tools-2.1.0.tgz#d944e314f58e4b27e62c6e5e97978177256fafc0"
-  integrity sha512-nNAmgquii+asgMRLvECMMB7bFrGxUmdSaGfcKrjKJo6YOD3xegDHZxQcZJMj4No8P9UwrcZqXmiY1Dr6Ny/Leg==
+"@tidepool/data-tools@2.2.0":
+  version "2.2.0"
+  resolved "https://registry.npmjs.org/@tidepool/data-tools/-/data-tools-2.2.0.tgz#6d363c157a5d2d36ab04e3932e92c8628a54721a"
+  integrity sha512-925Qtz8Z0VOpkwfLNYNVpv/oNY+7tvFcMvbjHxTM0IZvwY7khAHRY2BYLtI7jSZwQNtJMGqsqaxxS52qMNPdZg==
   dependencies:
     JSONStream "1.3.5"
     commander "3.0.1"
