@@ -7,7 +7,7 @@ RUN apk --no-cache update && \
     mkdir -p node_modules && chown -R node:node .
 
 
-### Stage 2 - Create cached `node_modules`
+### Stage 1 - Create cached `node_modules`
 # Only rebuild layer if `package.json` has changed
 FROM base as dependencies
 COPY package.json .
@@ -20,7 +20,7 @@ RUN \
   && yarn cache clean
 
 
-### Stage 3 - Development root with Chromium installed for unit tests
+### Stage 2 - Development root with Chromium installed for unit tests
 FROM base as development
 ENV NODE_ENV=development
 # Copy all `node_modules` dependencies
@@ -32,12 +32,12 @@ EXPOSE 9300
 CMD node -r esm ./app.js
 
 
-### Stage 4 - Test
+### Stage 3 - Test
 FROM development as test
 RUN yarn lint
 
 
-### Stage 5 - Serve production-ready release
+### Stage 4 - Serve production-ready release
 FROM base as production
 ENV NODE_ENV=production
 # Copy only `node_modules` needed to run the server
