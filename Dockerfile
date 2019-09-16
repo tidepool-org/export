@@ -1,5 +1,5 @@
 # Base node
-FROM node:10.9.0-alpine AS base
+FROM node:10.15.3-alpine AS base
 
 WORKDIR /app
 COPY package.json /app
@@ -8,19 +8,19 @@ COPY package.json /app
 # ---- Dependencies ----
 FROM base AS dependencies
 # install only production node packages
-RUN yarn install --production
+RUN npm install --production
 # mv production node_modules aside
 RUN mv node_modules /root/prod_node_modules
 # install ALL node_modules, including 'devDependencies'
-RUN yarn install \
- && yarn cache clean
+RUN npm install \
+ && npm cache clean --force
  
 #
 # ---- Test ----
 # run linters
 FROM dependencies AS test
 COPY . /app
-RUN yarn lint
+RUN npm run lint
  
 #
 # ---- Release ----
