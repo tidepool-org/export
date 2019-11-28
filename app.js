@@ -1,5 +1,3 @@
-#!/usr/bin/env node --harmony
-
 /* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
 import _ from 'lodash';
@@ -8,16 +6,14 @@ import http from 'http';
 import https from 'https';
 import axios from 'axios';
 import express from 'express';
-import flash from 'express-flash';
 import bodyParser from 'body-parser';
-import session from 'express-session';
 import queryString from 'query-string';
 import dataTools from '@tidepool/data-tools';
 import * as CSV from 'csv-string';
 import es from 'event-stream';
 import logMaker from './log';
 
-const MemoryStore = require('memorystore')(session);
+// const MemoryStore = require('memorystore')(session);
 
 const log = logMaker('app.js', { level: process.env.DEBUG_LEVEL || 'debug' });
 
@@ -42,6 +38,9 @@ if (process.env.EXPORT_HTTPS_CONFIG) {
 if (!config.httpPort) {
   config.httpPort = 9300;
 }
+
+config.exportTimeout = _.defaultTo(parseInt(process.env.EXPORT_TIMEOUT, 10), 120000);
+log.info(`Export download timeout set to ${config.exportTimeout} ms`);
 config.api = process.env.EXPORT_API_HOST;
 if (_.isEmpty(config.api)) {
   log.error('EXPORT_API_HOST config value is required.');
@@ -55,52 +54,19 @@ if (_.isEmpty(config.sessionSecret)) {
 
 const app = express();
 
-// Authentication and Authorization Middleware
-const auth = (req, res, next) => {
-  log.debug('authentication');
-  if (req.headers['x-tidepool-session-token']) {
-    log.info(`Set sessionToken: ${req.headers['x-tidepool-session-token']}`);
-    req.session.sessionToken = req.headers['x-tidepool-session-token'];
-  }
-
-  if (!_.hasIn(req.session, 'sessionToken') && !_.hasIn(req.query, 'restricted_token')) {
-    log.debug('redirect to login');
-    return res.redirect('/export/login');
-  }
-
-  return next();
-};
-
-function buildHeaders(requestSession) {
-  if (requestSession.sessionToken) {
+function buildHeaders(request) {
+  if (request.headers['x-tidepool-session-token']) {
     return {
       headers: {
-        'x-tidepool-session-token': requestSession.sessionToken,
+        'x-tidepool-session-token': request.headers['x-tidepool-session-token'],
       },
     };
   }
   return {};
 }
 
-function getPatientNameFromProfile(profile) {
-  return (profile.patient.fullName) ? profile.patient.fullName : profile.fullName;
-}
-
 log.info('set engine');
 
-app.set('view engine', 'pug');
-app.use(session({
-  store: new MemoryStore({
-    checkPeriod: 86400000, // Prune expired entries every 24h
-  }),
-  secret: config.sessionSecret,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: config.httpsConfig,
-  },
-}));
-app.use(flash());
 app.use(bodyParser.urlencoded({
   extended: false,
 }));
@@ -110,74 +76,18 @@ log.info('config');
 // The Health Check
 app.use('/export/status', require('express-healthcheck')());
 
-app.get('/export/login', (req, res) => {
-  res.render('login', {
-    flash: req.flash(),
-  });
-});
+app.get('/export/:userid', async (req, res) => {
+  // Set the timeout for the request. Make it 10 seconds longer than
+  // our configured timeout to give the service time to cancel the API data
+  // request, and close the outgoing data stream cleanly.
+  req.setTimeout(config.exportTimeout + 10000);
 
-app.post('/export/login', async (req, res) => {
-  try {
-    const loginResponse = await axios.post(`${config.api}/auth/login`, null, {
-      auth: {
-        username: req.body.username,
-        password: req.body.password,
-      },
-    });
-    req.session.sessionToken = loginResponse.headers['x-tidepool-session-token'];
-    req.session.user = loginResponse.data;
-    log.info(`User ${req.session.user.userid} logged into ${config.api}`);
-    res.redirect('/export/patients');
-  } catch (error) {
-    log.error(`Incorrect username and/or password for ${config.api}`);
-    req.flash('error', 'Username and/or password are incorrect');
-    res.redirect('/export/login');
-  }
-});
-
-app.get('/export/logout', (req, res) => {
-  delete req.session.sessionToken;
-  res.redirect('/export/login');
-});
-
-app.get('/export/patients', auth, async (req, res) => {
-  const userList = [];
-  try {
-    const profileResponse = await axios.get(`${config.api}/metadata/${req.session.user.userid}/profile`, buildHeaders(req.session));
-    userList.push({
-      userid: req.session.user.userid,
-      fullName: getPatientNameFromProfile(profileResponse.data),
-    });
-  } catch (error) {
-    log.debug('Could not read profile. Probably a clinician account');
-  }
-
-  try {
-    const userListResponse = await axios.get(`${config.api}/metadata/users/${req.session.user.userid}/users`, buildHeaders(req.session));
-    for (const trustingUser of userListResponse.data) {
-      if (trustingUser.trustorPermissions && trustingUser.trustorPermissions.view) {
-        userList.push({
-          userid: trustingUser.userid,
-          fullName: getPatientNameFromProfile(trustingUser.profile),
-        });
-      }
-    }
-
-    res.render('patients', {
-      users: userList,
-    });
-  } catch (error) {
-    log.error('Error fetching patient list');
-    log.error(error);
-    req.flash('error', 'Error fetching patient list');
-    res.redirect('/export/login');
-  }
-});
-
-app.get('/export/:userid', auth, async (req, res) => {
   const queryData = [];
 
   let logString = `Requesting download for User ${req.params.userid}`;
+  if (req.query.bgUnits) {
+    logString += ` in ${req.query.bgUnits}`;
+  }
   if (req.query.startDate) {
     queryData.startDate = req.query.startDate;
     logString += ` from ${req.query.startDate}`;
@@ -193,24 +103,31 @@ app.get('/export/:userid', auth, async (req, res) => {
   log.info(logString);
 
   try {
-    const requestConfig = buildHeaders(req.session);
-    log.debug(`request header is ${requestConfig}`);
+    const cancelRequest = axios.CancelToken.source();
+
+    const requestConfig = buildHeaders(req);
     requestConfig.responseType = 'stream';
-    const dataResponse = await axios.get(`${config.api}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
+    requestConfig.cancelToken = cancelRequest.token;
+    const dataResponse = await axios.get(`${process.env.API_HOST}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
     log.debug(`Downloading data for User ${req.params.userid}...`);
+
+    const processorConfig = { bgUnits: req.query.bgUnits || 'mmol/L' };
 
     if (req.query.format === 'json') {
       res.attachment('TidepoolExport.json');
 
       dataResponse.data
+        .pipe(dataTools.jsonParser())
+        .pipe(dataTools.tidepoolProcessor(processorConfig))
+        .pipe(dataTools.jsonStreamWriter())
         .pipe(res);
     } else if (req.query.format === 'xlsx') {
       res.attachment('TidepoolExport.xlsx');
 
       dataResponse.data
         .pipe(dataTools.jsonParser())
-        .pipe(dataTools.tidepoolProcessor())
-        .pipe(dataTools.xlsxStreamWriter(res));
+        .pipe(dataTools.tidepoolProcessor(processorConfig))
+        .pipe(dataTools.xlsxStreamWriter(res, processorConfig));
     } else {
       // export as csv
       res.attachment('TidepoolExport.csv');
@@ -218,27 +135,41 @@ app.get('/export/:userid', auth, async (req, res) => {
 
       dataResponse.data
         .pipe(dataTools.jsonParser())
-        .pipe(dataTools.tidepoolProcessor())
+        .pipe(dataTools.tidepoolProcessor(processorConfig))
         .pipe(es.mapSync(
-          data => CSV.stringify(dataTools.allFields.map(field => data[field] || '')),
+          (data) => CSV.stringify(dataTools.allFields.map((field) => data[field] || '')),
         ))
         .pipe(res);
     }
 
-    // Because we are in an async function, we need to  wait for the stream to complete
+    // Create a timeout timer that will let us cancel the incoming request gracefully if
+    // it's taking too long to fulfil.
+    const timer = setTimeout(() => {
+      res.emit('timeout', config.exportTimeout);
+    }, config.exportTimeout);
+    res.on('timeout', async () => {
+      log.warn('Data export request took too long to complete. Cancelling the request');
+      cancelRequest.cancel();
+    });
+
+    // Wait for the stream to complete, by wrapping the stream completion events in a Promise.
     try {
       await new Promise((resolve, reject) => {
         dataResponse.data.on('end', resolve);
-        dataResponse.data.on('error', err => reject(err));
+        dataResponse.data.on('error', (err) => reject(err));
+        res.on('error', (err) => reject(err));
       });
 
       log.debug(`Finished downloading data for User ${req.params.userid}`);
     } catch (e) {
       log.error(`Got error while downloading: ${e}`);
     }
+
+    clearTimeout(timer);
   } catch (error) {
-    if (error.dataResponse && error.dataResponse.statusCode === 403) {
-      res.redirect('/export/login');
+    if (error.response && error.response.status === 403) {
+      res.status(error.response.status).send('Not authorized to export data for this user.');
+      log.error(`${error.response.status}: ${error}`);
     } else {
       res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
       log.error(`500: ${error}`);
@@ -246,16 +177,6 @@ app.get('/export/:userid', auth, async (req, res) => {
   }
 });
 
-app.get('/export', (req, res) => {
-  log.error(req.headers);
-  res.redirect('/export/patients');
-});
-
-app.get('/', (req, res) => {
-  res.redirect('/export/patients');
-});
-
-log.info(`starting server with api ${config.api}`);
 if (config.httpPort) {
   app.server = http.createServer(app).listen(config.httpPort, () => {
     log.info(`Listening for HTTP on ${config.httpPort}`);

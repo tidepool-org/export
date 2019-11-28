@@ -6,10 +6,7 @@ node_js:
   - 10.15.3
   - node
 
-cache: yarn
-
 before_install:
-  - if [[ `npm -v` != 4* ]]; then npm install -g npm@4; fi
   - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.9.4
   - export PATH="$HOME/.yarn/bin:$PATH"
 
@@ -53,6 +50,8 @@ services:
 script:
   - npm run lint
   - ./artifact.sh
+  - npm run audit
+
 
 matrix:
   allow_failures:
