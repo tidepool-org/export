@@ -13,7 +13,7 @@ import * as CSV from 'csv-string';
 import es from 'event-stream';
 import logMaker from './log';
 
-const MemoryStore = require('memorystore')(session);
+// const MemoryStore = require('memorystore')(session);
 
 const log = logMaker('app.js', { level: process.env.DEBUG_LEVEL || 'debug' });
 
@@ -54,22 +54,6 @@ if (_.isEmpty(config.sessionSecret)) {
 
 const app = express();
 
-// Authentication and Authorization Middleware
-const auth = (req, res, next) => {
-  log.debug('authentication');
-  if (req.headers['x-tidepool-session-token']) {
-    log.info(`Set sessionToken: ${req.headers['x-tidepool-session-token']}`);
-    req.session.sessionToken = req.headers['x-tidepool-session-token'];
-  }
-
-  if (!_.hasIn(req.session, 'sessionToken') && !_.hasIn(req.query, 'restricted_token')) {
-    log.debug('redirect to login');
-    return res.redirect('/export/login');
-  }
-
-  return next();
-};
-
 function buildHeaders(request) {
   if (request.headers['x-tidepool-session-token']) {
     return {
@@ -81,25 +65,8 @@ function buildHeaders(request) {
   return {};
 }
 
-function getPatientNameFromProfile(profile) {
-  return (profile.patient.fullName) ? profile.patient.fullName : profile.fullName;
-}
-
 log.info('set engine');
 
-app.set('view engine', 'pug');
-app.use(session({
-  store: new MemoryStore({
-    checkPeriod: 86400000, // Prune expired entries every 24h
-  }),
-  secret: config.sessionSecret,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: config.httpsConfig,
-  },
-}));
-app.use(flash());
 app.use(bodyParser.urlencoded({
   extended: false,
 }));
@@ -170,7 +137,7 @@ app.get('/export/:userid', async (req, res) => {
         .pipe(dataTools.jsonParser())
         .pipe(dataTools.tidepoolProcessor(processorConfig))
         .pipe(es.mapSync(
-          data => CSV.stringify(dataTools.allFields.map(field => data[field] || '')),
+          (data) => CSV.stringify(dataTools.allFields.map((field) => data[field] || '')),
         ))
         .pipe(res);
     }

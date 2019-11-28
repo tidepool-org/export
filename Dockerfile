@@ -16,7 +16,7 @@ RUN \
   # Build and separate all dependancies required for production
   npm install --production && cp -R node_modules production_node_modules \
   # Build all modules, including `devDependencies`
-RUN npm install \
+  && npm install \
   && npm cache clean --force
 
 
