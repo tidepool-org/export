@@ -3,7 +3,7 @@
 rm -rf node_modules
 
 TIME="$(date +%s)"
-yarn --production
+npm install --production
 TIME="$(($(date +%s)-TIME))"
 
-echo "yarn install completed in ${TIME} seconds"
+echo "npm install completed in ${TIME} seconds"

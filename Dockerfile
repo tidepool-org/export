@@ -1,5 +1,5 @@
 ### Stage 0 - Base image
-FROM node:10.14.2-alpine as base
+FROM node:10.15.3-alpine as base
 WORKDIR /app
 RUN apk --no-cache update && \
     apk --no-cache upgrade && \
@@ -14,10 +14,10 @@ COPY package.json .
 COPY yarn.lock .
 RUN \
   # Build and separate all dependancies required for production
-  yarn install --production && cp -R node_modules production_node_modules \
+  npm install --production && cp -R node_modules production_node_modules \
   # Build all modules, including `devDependencies`
-  && yarn install \
-  && yarn cache clean
+RUN npm install \
+  && npm cache clean --force
 
 
 ### Stage 2 - Development root with Chromium installed for unit tests
@@ -34,7 +34,7 @@ CMD node -r esm ./app.js
 
 ### Stage 3 - Test
 FROM development as test
-RUN yarn lint
+RUN npm run lint
 
 
 ### Stage 4 - Serve production-ready release
