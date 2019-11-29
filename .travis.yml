@@ -49,8 +49,8 @@ services:
 
 script:
   - npm run lint
-  - ./artifact.sh
   - npm run audit
+  - ./artifact.sh
 
 
 matrix:
