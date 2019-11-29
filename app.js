@@ -108,7 +108,7 @@ app.get('/export/:userid', async (req, res) => {
     const requestConfig = buildHeaders(req);
     requestConfig.responseType = 'stream';
     requestConfig.cancelToken = cancelRequest.token;
-    const dataResponse = await axios.get(`${process.env.API_HOST}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
+    const dataResponse = await axios.get(`${config.api}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
     log.debug(`Downloading data for User ${req.params.userid}...`);
 
     const processorConfig = { bgUnits: req.query.bgUnits || 'mmol/L' };

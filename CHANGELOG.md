@@ -1,6 +1,10 @@
 # Export
 Service to export YourLoops data in selected formats, either csv, json or xls.
 
+## 1.4.1 - 2019-11-28
+### Fix 
+- PT-827 Fix wrong parameter usage
+
 ## 1.4.0 - 2019-11-28
 ### Added 
 - PT-823 Upgrade to Tidepool 1.4.0 to get food objects
