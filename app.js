@@ -137,7 +137,14 @@ app.get('/export/:userid', async (req, res) => {
         .pipe(dataTools.jsonParser())
         .pipe(dataTools.tidepoolProcessor(processorConfig))
         .pipe(es.mapSync(
-          (data) => CSV.stringify(dataTools.allFields.map((field) => data[field] || '')),
+          (data) => CSV.stringify(dataTools.allFields.map(
+            (field) => {
+              if (data[field] === undefined || data[field] === null) {
+                return '';
+              }
+              return data[field];
+            },
+          )),
         ))
         .pipe(res);
     }
