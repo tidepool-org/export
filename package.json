@@ -16,7 +16,7 @@
   "author": "Lennart Goedhart <lennart@tidepool.org>",
   "private": false,
   "dependencies": {
-    "@tidepool/data-tools": "2.2.0",
+    "@tidepool/data-tools": "2.3.0",
     "axios": "0.19.2",
     "body-parser": "1.19.0",
     "bunyan": "1.8.12",
@@ -24,17 +24,17 @@
     "express": "4.17.1",
     "express-healthcheck": "0.1.0",
     "lodash": "4.17.15",
-    "query-string": "6.10.1"
+    "query-string": "6.11.0"
   },
   "devDependencies": {
     "babel-eslint": "10.0.3",
     "eslint": "6.8.0",
     "eslint-config-airbnb": "18.0.1",
     "eslint-formatter-pretty": "3.0.1",
-    "eslint-plugin-import": "2.20.0",
+    "eslint-plugin-import": "2.20.1",
     "eslint-plugin-jsx-a11y": "6.2.3",
     "eslint-plugin-lodash": "6.0.0",
     "eslint-plugin-promise": "4.2.1",
-    "eslint-plugin-react": "7.18.0"
+    "eslint-plugin-react": "7.18.3"
   }
 }
