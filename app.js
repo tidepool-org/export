@@ -99,6 +99,7 @@ app.get('/export/:userid', async (req, res) => {
 
       dataResponse.data
         .pipe(dataTools.jsonParser())
+        .pipe(dataTools.splitPumpSettingsData())
         .pipe(dataTools.tidepoolProcessor(processorConfig))
         .pipe(dataTools.jsonStreamWriter())
         .pipe(res);
@@ -107,6 +108,7 @@ app.get('/export/:userid', async (req, res) => {
 
       dataResponse.data
         .pipe(dataTools.jsonParser())
+        .pipe(dataTools.splitPumpSettingsData())
         .pipe(dataTools.tidepoolProcessor(processorConfig))
         .pipe(dataTools.xlsxStreamWriter(res, processorConfig));
     }
