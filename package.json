@@ -1,6 +1,6 @@
 {
   "name": "@tidepool/export",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "main": "app.js",
   "repository": {
     "type": "git",
