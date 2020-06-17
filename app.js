@@ -94,23 +94,27 @@ app.get('/export/:userid', async (req, res) => {
 
     const processorConfig = { bgUnits: req.query.bgUnits || 'mmol/L' };
 
+    let writeStream = null;
+
     if (req.query.format === 'json') {
       res.attachment('TidepoolExport.json');
+      writeStream = dataTools.jsonStreamWriter();
 
       dataResponse.data
         .pipe(dataTools.jsonParser())
         .pipe(dataTools.splitPumpSettingsData())
         .pipe(dataTools.tidepoolProcessor(processorConfig))
-        .pipe(dataTools.jsonStreamWriter())
+        .pipe(writeStream)
         .pipe(res);
     } else {
       res.attachment('TidepoolExport.xlsx');
+      writeStream = dataTools.xlsxStreamWriter(res, processorConfig);
 
       dataResponse.data
         .pipe(dataTools.jsonParser())
         .pipe(dataTools.splitPumpSettingsData())
         .pipe(dataTools.tidepoolProcessor(processorConfig))
-        .pipe(dataTools.xlsxStreamWriter(res, processorConfig));
+        .pipe(writeStream);
     }
 
     // Create a timeout timer that will let us cancel the incoming request gracefully if
@@ -118,10 +122,6 @@ app.get('/export/:userid', async (req, res) => {
     const timer = setTimeout(() => {
       res.emit('timeout', config.exportTimeout);
     }, config.exportTimeout);
-    res.on('timeout', async () => {
-      log.warn('Data export request took too long to complete. Cancelling the request');
-      cancelRequest.cancel();
-    });
 
     // Wait for the stream to complete, by wrapping the stream completion events in a Promise.
     try {
@@ -129,11 +129,18 @@ app.get('/export/:userid', async (req, res) => {
         dataResponse.data.on('end', resolve);
         dataResponse.data.on('error', (err) => reject(err));
         res.on('error', (err) => reject(err));
+        res.on('timeout', async () => {
+          reject(new Error('Data export request took too long to complete. Cancelling the request.'));
+        });
       });
 
       log.debug(`Finished downloading data for User ${req.params.userid}`);
     } catch (e) {
-      log.error(`Got error while downloading: ${e}`);
+      log.error(`Error while downloading: ${e}`);
+      // Cancel the writeStream, rather than let it close normally.
+      // We do this to show error messages in the downloaded files.
+      writeStream.cancel();
+      cancelRequest.cancel('Data export timed out.');
     }
 
     clearTimeout(timer);
