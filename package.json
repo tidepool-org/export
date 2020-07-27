@@ -23,7 +23,6 @@
     "bunyan": "1.8.12",
     "esm": "3.2.25",
     "express": "4.17.1",
-    "express-healthcheck": "0.1.0",
     "lodash": "4.17.15",
     "query-string": "6.13.1"
   },
