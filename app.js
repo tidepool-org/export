@@ -13,6 +13,8 @@ import logMaker from './log';
 
 const log = logMaker('app.js', { level: process.env.DEBUG_LEVEL || 'info' });
 
+const { createTerminus } = require('@godaddy/terminus');
+
 function maybeReplaceWithContentsOfFile(obj, field) {
   const potentialFile = obj[field];
   if (potentialFile != null && fs.existsSync(potentialFile)) {
@@ -53,9 +55,6 @@ function buildHeaders(request) {
 app.use(bodyParser.urlencoded({
   extended: false,
 }));
-
-// The Health Check
-app.use('/export/status', require('express-healthcheck')());
 
 app.get('/export/:userid', async (req, res) => {
   // Set the timeout for the request. Make it 10 seconds longer than
@@ -155,8 +154,29 @@ app.get('/export/:userid', async (req, res) => {
   }
 });
 
+function beforeShutdown() {
+  return new Promise((resolve) => {
+    // Ensure that the export request can time out
+    // without being forcefully killed
+    setTimeout(resolve, config.exportTimeout + 10000);
+  });
+}
+
+function healthCheck() {
+  return Promise.resolve();
+}
+
+const options = {
+  healthChecks: {
+    '/export/status': healthCheck,
+  },
+  beforeShutdown,
+};
+
 if (config.httpPort) {
-  app.server = http.createServer(app).listen(config.httpPort, () => {
+  const server = http.createServer(app);
+  createTerminus(server, options);
+  server.listen(config.httpPort, () => {
     log.info(`Listening for HTTP on ${config.httpPort}`);
   });
 }
@@ -166,7 +186,9 @@ if (config.httpsPort) {
     log.error('SSL endpoint is enabled, but no valid config was found. Exiting.');
     process.exit(1);
   } else {
-    https.createServer(config.httpsConfig, app).listen(config.httpsPort, () => {
+    const server = https.createServer(config.httpsConfig, app);
+    createTerminus(server, options);
+    server.listen(config.httpsPort, () => {
       log.info(`Listening for HTTPS on ${config.httpsPort}`);
     });
   }
