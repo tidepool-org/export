@@ -9,11 +9,25 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import queryString from 'query-string';
 import dataTools from '@tidepool/data-tools';
+import { Registry, Counter } from 'prom-client';
 import logMaker from './log';
 
 const log = logMaker('app.js', { level: process.env.DEBUG_LEVEL || 'info' });
 
 const { createTerminus } = require('@godaddy/terminus');
+
+const client = require('prom-client');
+
+const { collectDefaultMetrics } = client;
+const register = new Registry();
+
+collectDefaultMetrics({ register });
+
+const createCounter = (name, help, labelNames) => new Counter({
+  name, help, labelNames, registers: [register],
+});
+
+const statusCount = createCounter('tidepool_export_failed_status_count', 'The number of errors for each status code.', ['status_code']);
 
 function maybeReplaceWithContentsOfFile(obj, field) {
   const potentialFile = obj[field];
@@ -40,6 +54,11 @@ config.exportTimeout = _.defaultTo(parseInt(process.env.EXPORT_TIMEOUT, 10), 120
 log.info(`Export download timeout set to ${config.exportTimeout} ms`);
 
 const app = express();
+
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(register.metrics());
+});
 
 function buildHeaders(request) {
   if (request.headers['x-tidepool-session-token']) {
@@ -129,10 +148,11 @@ app.get('/export/:userid', async (req, res) => {
         dataResponse.data.on('error', (err) => reject(err));
         res.on('error', (err) => reject(err));
         res.on('timeout', async () => {
+          statusCount.inc({ status_code: 408 });
           reject(new Error('Data export request took too long to complete. Cancelling the request.'));
         });
       });
-
+      statusCount.inc({ status_code: 200 });
       log.debug(`Finished downloading data for User ${req.params.userid}`);
     } catch (e) {
       log.error(`Error while downloading: ${e}`);
@@ -146,13 +166,16 @@ app.get('/export/:userid', async (req, res) => {
   } catch (error) {
     if (error.response && error.response.status === 403) {
       res.status(error.response.status).send('Not authorized to export data for this user.');
+      statusCount.inc({ status_code: 403 });
       log.error(`${error.response.status}: ${error}`);
     } else {
       res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
+      statusCount.inc({ status_code: 500 });
       log.error(`500: ${error}`);
     }
   }
 });
+
 
 function beforeShutdown() {
   return new Promise((resolve) => {
