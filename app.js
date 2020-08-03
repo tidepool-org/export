@@ -27,7 +27,7 @@ const createCounter = (name, help, labelNames) => new Counter({
   name, help, labelNames, registers: [register],
 });
 
-const statusCount = createCounter('tidepool_export_failed_status_count', 'The number of errors for each status code.', ['status_code']);
+const statusCount = createCounter('tidepool_export_status_count', 'The number of errors for each status code.', ['status_code']);
 
 function maybeReplaceWithContentsOfFile(obj, field) {
   const potentialFile = obj[field];
