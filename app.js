@@ -165,12 +165,12 @@ app.get('/export/:userid', async (req, res) => {
     clearTimeout(timer);
   } catch (error) {
     if (error.response && error.response.status === 403) {
-      res.status(error.response.status).send('Not authorized to export data for this user.');
       statusCount.inc({ status_code: 403 });
+      res.status(error.response.status).send('Not authorized to export data for this user.');
       log.error(`${error.response.status}: ${error}`);
     } else {
-      res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
       statusCount.inc({ status_code: 500 });
+      res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
       log.error(`500: ${error}`);
     }
   }
