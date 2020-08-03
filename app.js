@@ -114,7 +114,9 @@ app.get('/export/:userid', async (req, res) => {
 
     let writeStream = null;
 
-    if (req.query.format === 'json') {
+    const exportFormat = req.query.format;
+
+    if (exportFormat === 'json') {
       res.attachment('TidepoolExport.json');
       writeStream = dataTools.jsonStreamWriter();
 
@@ -148,11 +150,11 @@ app.get('/export/:userid', async (req, res) => {
         dataResponse.data.on('error', (err) => reject(err));
         res.on('error', (err) => reject(err));
         res.on('timeout', async () => {
-          statusCount.inc({ status_code: 408, export_format: req.query.format });
+          statusCount.inc({ status_code: 408, export_format: exportFormat });
           reject(new Error('Data export request took too long to complete. Cancelling the request.'));
         });
       });
-      statusCount.inc({ status_code: 200, export_format: req.query.format });
+      statusCount.inc({ status_code: 200, export_format: exportFormat });
       log.debug(`Finished downloading data for User ${req.params.userid}`);
     } catch (e) {
       log.error(`Error while downloading: ${e}`);
@@ -165,11 +167,11 @@ app.get('/export/:userid', async (req, res) => {
     clearTimeout(timer);
   } catch (error) {
     if (error.response && error.response.status === 403) {
-      statusCount.inc({ status_code: 403, export_format: req.query.format });
+      statusCount.inc({ status_code: 403, export_format: exportFormat });
       res.status(error.response.status).send('Not authorized to export data for this user.');
       log.error(`${error.response.status}: ${error}`);
     } else {
-      statusCount.inc({ status_code: 500, export_format: req.query.format });
+      statusCount.inc({ status_code: 500, export_format: exportFormat });
       res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
       log.error(`500: ${error}`);
     }
