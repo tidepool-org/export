@@ -27,7 +27,7 @@ const createCounter = (name, help, labelNames) => new Counter({
   name, help, labelNames, registers: [register],
 });
 
-const statusCount = createCounter('tidepool_export_status_count', 'The number of errors for each status code.', ['status_code']);
+const statusCount = createCounter('tidepool_export_status_count', 'The number of errors for each status code.', ['status_code', 'export_format']);
 
 function maybeReplaceWithContentsOfFile(obj, field) {
   const potentialFile = obj[field];
@@ -148,11 +148,11 @@ app.get('/export/:userid', async (req, res) => {
         dataResponse.data.on('error', (err) => reject(err));
         res.on('error', (err) => reject(err));
         res.on('timeout', async () => {
-          statusCount.inc({ status_code: 408 });
+          statusCount.inc({ status_code: 408, export_format: req.query.format });
           reject(new Error('Data export request took too long to complete. Cancelling the request.'));
         });
       });
-      statusCount.inc({ status_code: 200 });
+      statusCount.inc({ status_code: 200, export_format: req.query.format });
       log.debug(`Finished downloading data for User ${req.params.userid}`);
     } catch (e) {
       log.error(`Error while downloading: ${e}`);
@@ -165,11 +165,11 @@ app.get('/export/:userid', async (req, res) => {
     clearTimeout(timer);
   } catch (error) {
     if (error.response && error.response.status === 403) {
-      statusCount.inc({ status_code: 403 });
+      statusCount.inc({ status_code: 403, export_format: req.query.format });
       res.status(error.response.status).send('Not authorized to export data for this user.');
       log.error(`${error.response.status}: ${error}`);
     } else {
-      statusCount.inc({ status_code: 500 });
+      statusCount.inc({ status_code: 500, export_format: req.query.format });
       res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
       log.error(`500: ${error}`);
     }
