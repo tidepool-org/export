@@ -101,6 +101,8 @@ app.get('/export/:userid', async (req, res) => {
   }
   log.info(logString);
 
+  const exportFormat = req.query.format;
+
   try {
     const cancelRequest = axios.CancelToken.source();
 
@@ -113,8 +115,6 @@ app.get('/export/:userid', async (req, res) => {
     const processorConfig = { bgUnits: req.query.bgUnits || 'mmol/L' };
 
     let writeStream = null;
-
-    const exportFormat = req.query.format;
 
     if (exportFormat === 'json') {
       res.attachment('TidepoolExport.json');
