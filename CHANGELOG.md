@@ -1,6 +1,10 @@
 # Export
 Service to export YourLoops data in selected formats, either csv, json or xls.
 
+## 1.4.3 - 2020-08-04
+### Engineering
+- PT-1454 Generate SOUP document
+
 ## 1.4.2 - 2020-02-11
 ### Fix 
 - PT-1107 Numeric values with a value of 0 are exported as an empty string in csv

@@ -1,6 +1,6 @@
 {
-  "name": "@tidepool/export",
-  "version": "1.4.1",
+  "name": "export",
+  "version": "1.4.3",
   "main": "app.js",
   "repository": {
     "type": "git",
@@ -8,9 +8,11 @@
   },
   "scripts": {
     "lint": "eslint --cache --format=node_modules/eslint-formatter-pretty .",
-    "lint-fix": "yarn run lint -- --fix",
+    "lint-fix": "npm run lint -- --fix",
     "start": "node -r esm ./app.js",
-    "audit": "./node_modules/.bin/audit-ci --moderate"
+    "audit": "./node_modules/.bin/audit-ci --moderate --registry=https://registry.npmjs.org/",
+    "prebuild-soup": "mkdir -p doc/soup",
+    "build-soup": "release-helper gen-dep-report doc/soup/${npm_package_name}-${npm_package_version}-soup.md"
   },
   "license": "BSD-2-Clause",
   "description": "Service to export data from the Tidepool to various file formats",
@@ -31,7 +33,7 @@
   "devDependencies": {
     "audit-ci": "^2.4.2",
     "babel-eslint": "10.0.3",
-    "eslint": "6.3.0",
+    "eslint": "^7.6.0",
     "eslint-config-airbnb": "18.0.1",
     "eslint-formatter-pretty": "2.1.1",
     "eslint-plugin-import": "2.18.2",

@@ -1,5 +1,7 @@
 ### Stage 0 - Base image
 FROM node:10.15.3-alpine as base
+ARG npm_token
+ENV nexus_token=$npm_token
 WORKDIR /app
 RUN apk --no-cache update && \
     apk --no-cache upgrade && \
@@ -11,7 +13,8 @@ RUN apk --no-cache update && \
 # Only rebuild layer if `package.json` has changed
 FROM base as dependencies
 COPY package.json .
-COPY yarn.lock .
+COPY package-lock.json .
+COPY .npmrc .
 RUN \
   # Build and separate all dependancies required for production
   npm install --production && cp -R node_modules production_node_modules \
