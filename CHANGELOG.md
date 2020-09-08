@@ -1,6 +1,10 @@
 # Export
 Service to export YourLoops data in selected formats, either csv, json or xls.
 
+## 1.4.4 - 2020-09-07
+### Changed
+- PT-1496 Replace external gateway calls with direct service calls
+
 ## 1.4.3 - 2020-08-04
 ### Engineering
 - PT-1454 Generate SOUP document

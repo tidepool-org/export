@@ -1,6 +1,6 @@
 {
   "name": "export",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "main": "app.js",
   "repository": {
     "type": "git",

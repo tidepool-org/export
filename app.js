@@ -41,9 +41,9 @@ if (!config.httpPort) {
 
 config.exportTimeout = _.defaultTo(parseInt(process.env.EXPORT_TIMEOUT, 10), 120000);
 log.info(`Export download timeout set to ${config.exportTimeout} ms`);
-config.api = process.env.EXPORT_API_HOST;
-if (_.isEmpty(config.api)) {
-  log.error('EXPORT_API_HOST config value is required.');
+config.tideWhispererService = process.env.TIDE_WHISPERER_SERVICE;
+if (_.isEmpty(config.tideWhispererService)) {
+  log.error('TIDE_WHISPERER_SERVICE config value is required.');
   process.exit(1);
 }
 config.sessionSecret = process.env.SESSION_SECRET;
@@ -108,7 +108,7 @@ app.get('/export/:userid', async (req, res) => {
     const requestConfig = buildHeaders(req);
     requestConfig.responseType = 'stream';
     requestConfig.cancelToken = cancelRequest.token;
-    const dataResponse = await axios.get(`${config.api}/data/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
+    const dataResponse = await axios.get(`${config.tideWhispererService}/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
     log.debug(`Downloading data for User ${req.params.userid}...`);
 
     const processorConfig = { bgUnits: req.query.bgUnits || 'mmol/L' };
