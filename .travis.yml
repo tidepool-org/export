@@ -3,8 +3,7 @@ sudo: false
 language: node_js
 
 node_js:
-  - 10.15.3
-  - node
+  - 10
 
 install:
   - npm install -g npm@latest
@@ -27,9 +26,9 @@ deploy:
   # option to `master` means Travis will only attempt a deployment on
   # builds of your repo's master branch (e.g., after you merge a PR).
   - provider: s3
+    edge: true
     on:
       tags: true
-      node_js: 10.15.3
     # You can refer to environment variables from Travis repo settings!
     access_key_id: $AWS_ACCESS_KEY_ID
     secret_access_key: $AWS_SECRET_ACCESS_KEY
@@ -46,9 +45,9 @@ deploy:
     cache_control: "max-age=21600"
   # Deploy SOUP list
   - provider: s3
+    edge: true
     on:
       tags: true
-      node_js: 10.15.3
     access_key_id: $AWS_ACCESS_KEY_ID
     secret_access_key: $AWS_SECRET_ACCESS_KEY
     region: $AWS_DEFAULT_REGION
@@ -65,8 +64,3 @@ script:
   - npm run lint
   - npm run audit
   - ./artifact.sh
-
-
-matrix:
-  allow_failures:
-    - node_js: node
