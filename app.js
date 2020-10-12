@@ -219,7 +219,6 @@ app.get('/export/:userid', async (req, res) => {
   }
 });
 
-
 function beforeShutdown() {
   return new Promise((resolve) => {
     // Ensure that the export request can time out
