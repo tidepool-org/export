@@ -11,18 +11,12 @@ import queryString from 'query-string';
 import dataTools from '@tidepool/data-tools';
 import * as CSV from 'csv-string';
 import es from 'event-stream';
-import { Registry, Counter } from 'prom-client';
+import { Registry, Counter, collectDefaultMetrics } from 'prom-client';
+import { createTerminus } from '@godaddy/terminus';
 import logMaker from './log';
-
-// const MemoryStore = require('memorystore')(session);
 
 const log = logMaker('app.js', { level: process.env.DEBUG_LEVEL || 'debug' });
 
-const { createTerminus } = require('@godaddy/terminus');
-
-const client = require('prom-client');
-
-const { collectDefaultMetrics } = client;
 const register = new Registry();
 
 collectDefaultMetrics({ register });
