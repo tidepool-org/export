@@ -11,11 +11,21 @@ import queryString from 'query-string';
 import dataTools from '@tidepool/data-tools';
 import * as CSV from 'csv-string';
 import es from 'event-stream';
+import { Registry, Counter, collectDefaultMetrics } from 'prom-client';
+import { createTerminus } from '@godaddy/terminus';
 import logMaker from './log';
 
-// const MemoryStore = require('memorystore')(session);
-
 const log = logMaker('app.js', { level: process.env.DEBUG_LEVEL || 'debug' });
+
+const register = new Registry();
+
+collectDefaultMetrics({ register });
+
+const createCounter = (name, help, labelNames) => new Counter({
+  name, help, labelNames, registers: [register],
+});
+
+const statusCount = createCounter('tidepool_export_status_count', 'The number of errors for each status code.', ['status_code', 'export_format']);
 
 function maybeReplaceWithContentsOfFile(obj, field) {
   const potentialFile = obj[field];
@@ -53,6 +63,11 @@ if (_.isEmpty(config.sessionSecret)) {
 }
 
 const app = express();
+
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(register.metrics());
+});
 
 function buildHeaders(request) {
   if (request.headers['x-tidepool-session-token']) {
@@ -102,6 +117,8 @@ app.get('/export/:userid', async (req, res) => {
   }
   log.info(logString);
 
+  const exportFormat = req.query.format;
+
   try {
     const cancelRequest = axios.CancelToken.source();
 
@@ -113,19 +130,25 @@ app.get('/export/:userid', async (req, res) => {
 
     const processorConfig = { bgUnits: req.query.bgUnits || 'mmol/L' };
 
-    if (req.query.format === 'json') {
+    let writeStream = null;
+
+    if (exportFormat === 'json') {
       res.attachment('TidepoolExport.json');
+      writeStream = dataTools.jsonStreamWriter();
 
       dataResponse.data
         .pipe(dataTools.jsonParser())
+        .pipe(dataTools.splitPumpSettingsData())
         .pipe(dataTools.tidepoolProcessor(processorConfig))
-        .pipe(dataTools.jsonStreamWriter())
+        .pipe(writeStream)
         .pipe(res);
     } else if (req.query.format === 'xlsx') {
       res.attachment('TidepoolExport.xlsx');
+      writeStream = dataTools.xlsxStreamWriter(res, processorConfig);
 
       dataResponse.data
         .pipe(dataTools.jsonParser())
+        .pipe(dataTools.splitPumpSettingsData())
         .pipe(dataTools.tidepoolProcessor(processorConfig))
         .pipe(dataTools.xlsxStreamWriter(res, processorConfig));
     } else {
@@ -154,10 +177,6 @@ app.get('/export/:userid', async (req, res) => {
     const timer = setTimeout(() => {
       res.emit('timeout', config.exportTimeout);
     }, config.exportTimeout);
-    res.on('timeout', async () => {
-      log.warn('Data export request took too long to complete. Cancelling the request');
-      cancelRequest.cancel();
-    });
 
     // Wait for the stream to complete, by wrapping the stream completion events in a Promise.
     try {
@@ -165,27 +184,58 @@ app.get('/export/:userid', async (req, res) => {
         dataResponse.data.on('end', resolve);
         dataResponse.data.on('error', (err) => reject(err));
         res.on('error', (err) => reject(err));
+        res.on('timeout', async () => {
+          statusCount.inc({ status_code: 408, export_format: exportFormat });
+          reject(new Error('Data export request took too long to complete. Cancelling the request.'));
+        });
       });
-
+      statusCount.inc({ status_code: 200, export_format: exportFormat });
       log.debug(`Finished downloading data for User ${req.params.userid}`);
     } catch (e) {
-      log.error(`Got error while downloading: ${e}`);
+      log.error(`Error while downloading: ${e}`);
+      // Cancel the writeStream, rather than let it close normally.
+      // We do this to show error messages in the downloaded files.
+      writeStream.cancel();
+      cancelRequest.cancel('Data export timed out.');
     }
 
     clearTimeout(timer);
   } catch (error) {
     if (error.response && error.response.status === 403) {
+      statusCount.inc({ status_code: 403, export_format: exportFormat });
       res.status(error.response.status).send('Not authorized to export data for this user.');
       log.error(`${error.response.status}: ${error}`);
     } else {
+      statusCount.inc({ status_code: 500, export_format: exportFormat });
       res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
       log.error(`500: ${error}`);
     }
   }
 });
 
+function beforeShutdown() {
+  return new Promise((resolve) => {
+    // Ensure that the export request can time out
+    // without being forcefully killed
+    setTimeout(resolve, config.exportTimeout + 10000);
+  });
+}
+
+function healthCheck() {
+  return Promise.resolve();
+}
+
+const options = {
+  healthChecks: {
+    '/export/status': healthCheck,
+  },
+  beforeShutdown,
+};
+
 if (config.httpPort) {
-  app.server = http.createServer(app).listen(config.httpPort, () => {
+  const server = http.createServer(app);
+  createTerminus(server, options);
+  server.listen(config.httpPort, () => {
     log.info(`Listening for HTTP on ${config.httpPort}`);
   });
 }
@@ -195,7 +245,9 @@ if (config.httpsPort) {
     log.error('SSL endpoint is enabled, but no valid config was found. Exiting.');
     process.exit(1);
   } else {
-    https.createServer(config.httpsConfig, app).listen(config.httpsPort, () => {
+    const server = https.createServer(config.httpsConfig, app);
+    createTerminus(server, options);
+    server.listen(config.httpsPort, () => {
       log.info(`Listening for HTTPS on ${config.httpsPort}`);
     });
   }

@@ -1,6 +1,10 @@
 # Export
 Service to export YourLoops data in selected formats, either csv, json or xls.
 
+## 1.5.0 - 2020-10-12
+### Changed
+- 1286 Integrate Tidepool master
+
 ## 1.4.5 - 2020-09-29
 ### Engineering
 PT-1529 Base export image on node:10-alpine
