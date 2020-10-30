@@ -47,6 +47,10 @@ ENV NODE_ENV=production
 RUN apk del .build-dependencies
 # Copy only `node_modules` needed to run the server
 COPY --from=dependencies /app/production_node_modules ./node_modules
+# @godaddy/terminus has an example folder with a package.json file 
+# This file refers to a version of Mongoose with CVE that makes aquascanner fail
+# We just remove here this unused example folder
+RUN rm -rf /app/node_modules/@godaddy/terminus/example
 # Copy source files
 COPY --chown=node:node . .
 USER node

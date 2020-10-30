@@ -1,6 +1,10 @@
 # Export
 Service to export YourLoops data in selected formats, either csv, json or xls.
 
+## 1.5.1 - 2020-10-29
+### Engineering
+- YLP-257 Review SOUP doc destination
+
 ## 1.5.0 - 2020-10-12
 ### Changed
 - 1286 Integrate Tidepool master
