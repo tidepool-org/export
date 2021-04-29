@@ -15,11 +15,9 @@ You'll have to uncomment the export service in the `docker-compose.yml`, but aft
 # Setup
 If you want to develop any part of the export service, you can run the service locally on Node.
 
-1. Install Node version 10.9.0 or later. [NVM](https://github.com/creationix/nvm) is highly recommended.
-1. Install [Yarn](https://yarnpkg.com/).
-1. Execute `yarn` to install all dependencies
+1. Install Node version 12 or later. [NVM](https://github.com/creationix/nvm) is highly recommended.
+1. Execute `npm install` to install all dependencies
 
 # Execute
 
-`yarn dev`
-
+`npm run start`

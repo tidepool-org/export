@@ -1,5 +1,63 @@
 /* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
+/**
+ * @swagger
+ * components:
+ *   securitySchemes:
+ *     tidepoolAuth:
+ *       type: apiKey
+ *       in: header
+ *       name: x-tidepool-session-token
+ *   responses:
+ *     InternalError:
+ *       description: An internal problem occurred
+ *       content:
+ *         text/plain:
+ *           schema:
+ *             type: string
+ *     PageNotFound:
+ *       description: The requested document is not found
+ *       content:
+ *         text/plain:
+ *           schema:
+ *             type: string
+ *     Unauthorized:
+ *       description: The requester is not authorized to perform this request
+ *       content:
+ *         text/plain:
+ *           schema:
+ *             type: string
+ *     BadRequest:
+ *       description: The request is not correct
+ *       content:
+ *         text/plain:
+ *           schema:
+ *             type: string
+ *     NotImplemented:
+ *       description: The method is not implemented
+ *       content:
+ *         text/plain:
+ *           schema:
+ *             type: string
+ *   schemas:
+ *     ServiceStatus:
+ *       type: object
+ *       properties:
+ *         status:
+ *           type: string
+ *       example:
+ *         status: "ok"
+ *     Datum:
+ *      type: object
+ *      properties:
+ *        type: string
+ *        time: string
+ *     Data:
+ *      type: array
+ *      items:
+ *        $ref: "#/components/schemas/Datum"
+ */
+
 import _ from 'lodash';
 import fs from 'fs';
 import http from 'http';
@@ -8,16 +66,17 @@ import axios from 'axios';
 import express from 'express';
 import bodyParser from 'body-parser';
 import queryString from 'query-string';
-import dataTools from '@tidepool/data-tools';
 import * as CSV from 'csv-string';
 import es from 'event-stream';
 import { Registry, Counter, collectDefaultMetrics } from 'prom-client';
 import { createTerminus } from '@godaddy/terminus';
-import logMaker from './log';
+import healthcheck from 'express-healthcheck';
+import dataTools from './data-tools.js';
+import logMaker from './log.js';
 
 const log = logMaker('app.js', { level: process.env.DEBUG_LEVEL || 'debug' });
-
 const register = new Registry();
+let nExportInProgress = 0;
 
 collectDefaultMetrics({ register });
 
@@ -70,14 +129,14 @@ app.get('/metrics', async (req, res) => {
 });
 
 function buildHeaders(request) {
+  let headers = {};
   if (request.headers['x-tidepool-session-token']) {
-    return {
-      headers: {
-        'x-tidepool-session-token': request.headers['x-tidepool-session-token'],
-      },
-    };
+    headers['x-tidepool-session-token'] = request.headers['x-tidepool-session-token'];
   }
-  return {};
+  if (request.headers['x-tidepool-trace-session']) {
+    headers['x-tidepool-trace-session'] = request.headers['x-tidepool-trace-session'];
+  }
+  return { headers };
 }
 
 log.info('set engine');
@@ -88,10 +147,71 @@ app.use(bodyParser.urlencoded({
 
 log.info('config');
 
-// The Health Check
-app.use('/export/status', require('express-healthcheck')());
+/**
+ * @swagger
+ * /export/status:
+ *  get:
+ *    summary: Request Service Status
+ *    description: This route returns 200 with software version and list of up/down dependencies
+ *    responses:
+ *      200:
+ *        description: Service Status with software version and list of up/down dependencies
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/ServiceStatus'
+ */
+app.use('/export/status', healthcheck());
 
+/**
+ * @swagger
+ * /export/{userid}:
+ *  get:
+ *    summary: Export patient data
+ *    description: Route use to export patient medical data
+ *    security:
+ *      - tidepoolAuth:
+ *        -read: Data
+ *    parameters:
+ *      - in: path
+ *        name: bgUnits
+ *        required: false
+ *        description: Transform bg value
+ *        schema:
+ *          type: string
+ *          enum:
+ *            - 'mmol/L'
+ *            - 'mg/dL'
+ *      - in: path
+ *        name: startDate
+ *        require: false
+ *        description: Restrict data with datum time > specified date
+ *        schema:
+ *          type: string
+ *          format: date-time
+ *      - in: path
+ *        name: endDate
+ *        require: false
+ *        description: Restrict data with datum time < specified date
+ *        schema:
+ *          type: string
+ *          format: date-time
+ *      - in: path
+ *        name: restricted_token
+ *        require: false
+ *        description: Parameter to pass to tide-whisperer
+ *        schema:
+ *          type: string
+ *    responses:
+ *      200:
+ *        description: Data exported
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/Data'
+ */
 app.get('/export/:userid', async (req, res) => {
+  nExportInProgress += 1;
   // Set the timeout for the request. Make it 10 seconds longer than
   // our configured timeout to give the service time to cancel the API data
   // request, and close the outgoing data stream cleanly.
@@ -115,7 +235,12 @@ app.get('/export/:userid', async (req, res) => {
     queryData.restricted_token = req.query.restricted_token;
     logString += ' with restricted_token';
   }
-  log.info(logString);
+  const traceSession = req.get('x-tidepool-trace-session');
+  if (traceSession) {
+    log.info(logString, { traceSession });
+  } else {
+    log.info(logString);
+  }
 
   const exportFormat = req.query.format;
 
@@ -210,15 +335,26 @@ app.get('/export/:userid', async (req, res) => {
       res.status(500).send('Server error while processing data. Please contact Tidepool Support.');
       log.error(`500: ${error}`);
     }
+  } finally {
+    nExportInProgress -= 1;
   }
 });
 
 function beforeShutdown() {
+  if (nExportInProgress < 1) {
+    return Promise.resolve();
+  }
   return new Promise((resolve) => {
     // Ensure that the export request can time out
     // without being forcefully killed
-    setTimeout(resolve, config.exportTimeout + 10000);
+    const timeout = config.exportTimeout + 10000;
+    log.info(`${nExportInProgress} export in progress, shutting down in ${timeout}ms`);
+    setTimeout(resolve, timeout);
   });
+}
+
+function onShutdown() {
+  log.info('Server is shutting down');
 }
 
 function healthCheck() {
@@ -229,8 +365,17 @@ const options = {
   healthChecks: {
     '/export/status': healthCheck,
   },
+  signals: ['SIGTERM', 'SIGINT'],
   beforeShutdown,
+  onShutdown,
 };
+
+fs.promises.readFile('./package.json', { encoding: 'utf-8' }).then((pkgString) => {
+  const pkg = JSON.parse(pkgString);
+  log.info(`export service version`, pkg.version);
+}).catch((reason) => {
+  log.warn('Failed to read package.json', { reason });
+});
 
 if (config.httpPort) {
   const server = http.createServer(app);

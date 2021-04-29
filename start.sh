@@ -8,4 +8,4 @@ nvm use --delete-prefix "${START_NODE_VERSION}"
 
 . config/env.sh
 
-exec node -r esm ./app.js
+exec node ./app.js

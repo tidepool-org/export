@@ -8,10 +8,9 @@
             "type": "node",
             "request": "launch",
             "name": "Launch Export",
-            "program": "${workspaceFolder}\\app.js",
-            "runtimeArgs":["-r", "esm"],
+            "program": "${workspaceFolder}/app.js",
             "outFiles": [
-                "${workspaceFolder}/**/*.js",
+                "${workspaceFolder}/**/*.js"
             ],
             "env": {
                 "TIDE_WHISPERER_SERVICE": "http://localhost:9127",
@@ -19,7 +18,7 @@
                 "DEBUG_LEVEL": "debug",
                 "SESSION_SECRET": "PxUMHOatCSw9p3FeofKQNrdR47q2LivG",
                 "NODE_ENV": "development"
-            },
+            }
         }
     ]
 }

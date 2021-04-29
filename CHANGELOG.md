@@ -1,6 +1,14 @@
 # Export
 Service to export YourLoops data in selected formats, either csv, json or xls.
 
+## 1.6.0 - 2021-04-29
+### Changed
+- YLP-536 Listen to SIGTERM & SIGINT signals & quickly shutdown when there is no export in progress.
+### Engineering
+- YLP-537 Update to nodejs v12
+- Replace Travis with Jenkins
+- Add OpenAPI documentation using `swagger-jsdoc`
+
 ## 1.5.1 - 2020-10-29
 ### Engineering
 - YLP-257 Review SOUP doc destination

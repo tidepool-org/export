@@ -1,3 +1,8 @@
 node_modules
 personal
 .eslintcache
+doc
+output
+swagger.json
+deps-errors.txt
+deps-prod.json

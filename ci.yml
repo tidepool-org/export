@@ -1,0 +1,11 @@
+module: export
+type: nodejs
+runTests: false
+testCommand: npm test
+docker: true
+securityScan: true
+publishNpm: false
+publishS3: false
+publishSoupBucket: com.diabeloop.backloops.docs
+publishOpenapiBucket: com.diabeloop.backloops.docs
+dockerPushToProduction: true
