@@ -2,6 +2,8 @@
 Service to export YourLoops data in selected formats, either csv, json or xls.
 
 ## Unreleased
+### Added
+- YLP-974 Add a filter on export service to export some types of data
 ### Changed
 - YLP-973 Update glycemia unit conversion in export
 

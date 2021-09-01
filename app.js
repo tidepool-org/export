@@ -231,6 +231,7 @@ app.get('/export/:userid', async (req, res) => {
     queryData.endDate = req.query.endDate;
     logString += ` until ${req.query.endDate}`;
   }
+  
   if (req.query.restricted_token) {
     queryData.restricted_token = req.query.restricted_token;
     logString += ' with restricted_token';
@@ -254,17 +255,20 @@ app.get('/export/:userid', async (req, res) => {
     log.debug(`Downloading data for User ${req.params.userid}...`);
 
     const processorConfig = { bgUnits: req.query.bgUnits || 'mmol/L' };
-
+    
     let writeStream = null;
-
+    let filteredType = false;
+    if (req.query.type) {
+      filteredType = req.query.type.split(',');
+    }
     if (exportFormat === 'json') {
       res.attachment('TidepoolExport.json');
       writeStream = dataTools.jsonStreamWriter();
-
+      
       dataResponse.data
         .pipe(dataTools.jsonParser())
         .pipe(dataTools.splitPumpSettingsData())
-        .pipe(dataTools.tidepoolProcessor(processorConfig))
+        .pipe(dataTools.tidepoolProcessor(processorConfig, filteredType))
         .pipe(writeStream)
         .pipe(res);
     } else if (req.query.format === 'xlsx') {
@@ -274,7 +278,7 @@ app.get('/export/:userid', async (req, res) => {
       dataResponse.data
         .pipe(dataTools.jsonParser())
         .pipe(dataTools.splitPumpSettingsData())
-        .pipe(dataTools.tidepoolProcessor(processorConfig))
+        .pipe(dataTools.tidepoolProcessor(processorConfig, filteredType))
         .pipe(dataTools.xlsxStreamWriter(res, processorConfig));
     } else {
       // export as csv
@@ -283,7 +287,7 @@ app.get('/export/:userid', async (req, res) => {
 
       dataResponse.data
         .pipe(dataTools.jsonParser())
-        .pipe(dataTools.tidepoolProcessor(processorConfig))
+        .pipe(dataTools.tidepoolProcessor(processorConfig, filteredType))
         .pipe(es.mapSync(
           (data) => CSV.stringify(dataTools.allFields.map(
             (field) => {

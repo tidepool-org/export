@@ -282,8 +282,13 @@ export default class TidepoolDataTools {
     return JSONStream.parse('*');
   }
 
-  static tidepoolProcessor(processorConfig = {}) {
+  static tidepoolProcessor(processorConfig = {}, filteredType = []) {
     return es.mapSync((data) => {
+      if(filteredType.length > 0) {
+        if (filteredType.indexOf(data.type) < 0) {
+          return;
+        }
+      }
       // Synthesize the 'localTime' field
       this.addLocalTime(data);
       // Stringify objects configured with { "stringify": true }
