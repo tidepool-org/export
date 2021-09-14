@@ -1,7 +1,7 @@
 # Export
 Service to export YourLoops data in selected formats, either csv, json or xls.
 
-## Unreleased
+## 1.7.0 - 2021-09-14
 ### Added
 - YLP-974 Add a filter on export service to export some types of data
 ### Changed
