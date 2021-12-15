@@ -1,11 +1,11 @@
 ### Stage 0 - Base image
-FROM node:12-alpine as base
+FROM node:16-alpine as base
 ARG npm_token
 ENV NEXUS_TOKEN=$npm_token
 WORKDIR /app
 RUN apk --no-cache update && \
     apk --no-cache upgrade && \
-    apk add --no-cache --virtual .build-dependencies python make g++ && \
+    apk add --no-cache --virtual .build-dependencies python3 make g++ && \
     npm install -g npm@latest && \
     mkdir -p node_modules && chown -R node:node .
 
@@ -28,7 +28,8 @@ RUN \
 FROM base as production
 ENV NODE_ENV=production
 ENV NODE_OPTIONS='--max-old-space-size=4096'
-RUN apk del .build-dependencies
+RUN apk del .build-dependencies && \
+    npm uninstall npm -g
 # Copy only `node_modules` needed to run the server
 COPY --from=dependencies /app/production_node_modules ./node_modules
 # @godaddy/terminus has an example folder with a package.json file

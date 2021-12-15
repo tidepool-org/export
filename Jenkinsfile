@@ -17,7 +17,7 @@ pipeline {
         stage('Build') {
             agent {
                 docker {
-                    image "docker.ci.diabeloop.eu/node-build:12"
+                    image "docker.ci.diabeloop.eu/node-build:16"
                 }
             }
             steps {
