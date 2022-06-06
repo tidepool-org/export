@@ -128,17 +128,6 @@ app.get('/metrics', async (req, res) => {
   res.end(register.metrics());
 });
 
-function buildHeaders(request) {
-  let headers = {};
-  if (request.headers['x-tidepool-session-token']) {
-    headers['x-tidepool-session-token'] = request.headers['x-tidepool-session-token'];
-  }
-  if (request.headers['x-tidepool-trace-session']) {
-    headers['x-tidepool-trace-session'] = request.headers['x-tidepool-trace-session'];
-  }
-  return { headers };
-}
-
 log.info('set engine');
 
 app.use(bodyParser.urlencoded({
@@ -243,26 +232,25 @@ app.get('/export/:userid', async (req, res) => {
     log.info(logString);
   }
 
-  const exportFormat = req.query.format;
+  const exportFormat = req.query.format ? req.query.format : "csv";
 
   try {
     const cancelRequest = axios.CancelToken.source();
 
-    const requestConfig = buildHeaders(req);
+    const requestConfig = { headers: (req.headers) ? req.headers : {}};
     requestConfig.responseType = 'stream';
     requestConfig.cancelToken = cancelRequest.token;
     const dataResponse = await axios.get(`${config.tideWhispererService}/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
     log.debug(`Downloading data for User ${req.params.userid}...`);
 
     const processorConfig = { bgUnits: req.query.bgUnits || 'mmol/L' };
-    
     let writeStream = null;
     let filteredType = false;
     if (req.query.type) {
       filteredType = req.query.type.split(',');
     }
-    if (exportFormat === 'json') {
-      res.attachment('TidepoolExport.json');
+    res.attachment(`data.${exportFormat}`);
+    if (exportFormat === 'json') {      
       writeStream = dataTools.jsonStreamWriter();
       
       dataResponse.data
@@ -272,7 +260,6 @@ app.get('/export/:userid', async (req, res) => {
         .pipe(writeStream)
         .pipe(res);
     } else if (req.query.format === 'xlsx') {
-      res.attachment('TidepoolExport.xlsx');
       writeStream = dataTools.xlsxStreamWriter(res, processorConfig);
 
       dataResponse.data
@@ -282,7 +269,6 @@ app.get('/export/:userid', async (req, res) => {
         .pipe(dataTools.xlsxStreamWriter(res, processorConfig));
     } else {
       // export as csv
-      res.attachment('TidepoolExport.csv');
       res.write(CSV.stringify(dataTools.allFields));
 
       dataResponse.data
