@@ -1,6 +1,9 @@
 # Export
 Service to export YourLoops data in selected formats, either csv, json or xls.
 
+## 1.8.0 - 2022-10-25
+### Engineering
+- YLP-1870 Retrieve parameters history from tide-v2
 
 ## 1.7.3 - 2022-05-30
 ### Engineering
