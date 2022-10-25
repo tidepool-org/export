@@ -210,18 +210,6 @@ export default class TidepoolDataTools {
     );
   }
 
-  static debug() {
-    return es.through(
-        function write(data) {
-          console.log('debug ' + JSON.stringify(data))
-            this.emit('data', data)
-        },
-        function end() {
-          this.emit('end');
-        },
-    );
-  }
-
   static splitPumpSettingsData() {
     return es.through(
       function write(data) {

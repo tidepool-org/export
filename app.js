@@ -247,7 +247,6 @@ app.get('/export/:userid', async (req, res) => {
     requestConfig.cancelToken = cancelRequest.token;
     const dataResponse = await axios.get(`${config.tideWhispererService}/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
     const paramsHistoryResponse = await axios.get(`${config.tideWhisperer2Service}/v2/params/history/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
-    // const mergedDataStream = es.merge(dataResponse.data, paramsHistoryResponse.data);
 
     log.debug(`Downloading data for User ${req.params.userid}...`);
 
