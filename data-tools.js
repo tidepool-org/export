@@ -204,7 +204,6 @@ export default class TidepoolDataTools {
           }
         },
         function end() {
-          console.log('finitos')
           this.emit('end');
         },
     );
