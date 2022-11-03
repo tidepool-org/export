@@ -194,6 +194,21 @@ export default class TidepoolDataTools {
     }
   }
 
+  static transformParamsHistoryData() {
+    return es.through(
+        function write(data) {
+          if (data.changeType) {
+            this.emit('data', {...data, type: 'deviceEvent', subType: 'deviceParameter', units: data.unit, time: data.timestamp});
+          } else {
+            this.emit('data', data)
+          }
+        },
+        function end() {
+          this.emit('end');
+        },
+    );
+  }
+
   static splitPumpSettingsData() {
     return es.through(
       function write(data) {

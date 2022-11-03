@@ -115,6 +115,11 @@ if (_.isEmpty(config.tideWhispererService)) {
   log.error('TIDE_WHISPERER_SERVICE config value is required.');
   process.exit(1);
 }
+config.tideWhisperer2Service = process.env.TIDE_WHISPERER_2_SERVICE;
+if (_.isEmpty(config.tideWhisperer2Service)) {
+  log.error('TIDE_WHISPERER_2_SERVICE config value is required.');
+  process.exit(1);
+}
 config.sessionSecret = process.env.SESSION_SECRET;
 if (_.isEmpty(config.sessionSecret)) {
   log.error('SESSION_SECRET config value required.');
@@ -241,6 +246,8 @@ app.get('/export/:userid', async (req, res) => {
     requestConfig.responseType = 'stream';
     requestConfig.cancelToken = cancelRequest.token;
     const dataResponse = await axios.get(`${config.tideWhispererService}/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
+    const paramsHistoryResponse = await axios.get(`${config.tideWhisperer2Service}/v2/parameter-change/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
+
     log.debug(`Downloading data for User ${req.params.userid}...`);
 
     const processorConfig = { bgUnits: req.query.bgUnits || 'mmol/L' };
@@ -257,6 +264,12 @@ app.get('/export/:userid', async (req, res) => {
         .pipe(dataTools.jsonParser())
         .pipe(dataTools.splitPumpSettingsData())
         .pipe(dataTools.tidepoolProcessor(processorConfig, filteredType))
+        .pipe(writeStream)
+        .pipe(res);
+
+      paramsHistoryResponse.data
+        .pipe(dataTools.jsonParser())
+        .pipe(dataTools.transformParamsHistoryData())
         .pipe(writeStream)
         .pipe(res);
     } else if (req.query.format === 'xlsx') {
@@ -284,7 +297,26 @@ app.get('/export/:userid', async (req, res) => {
             },
           )),
         ))
-        .pipe(res);
+        .pipe(res, {end:false});
+      // end: false, to keep the stream open after the 'end' event of the pipe
+
+      dataResponse.data.on('end', () => {
+        // once first stream is written to res, we're writing the second stream in res
+        paramsHistoryResponse.data
+            .pipe(dataTools.jsonParser())
+            .pipe(dataTools.transformParamsHistoryData())
+            .pipe(es.mapSync(
+                (data) => CSV.stringify(dataTools.allFields.map(
+                    (field) => {
+                      if (data[field] === undefined || data[field] === null) {
+                        return '';
+                      }
+                      return data[field];
+                    },
+                )),
+            ))
+            .pipe(res);
+      })
     }
 
     // Create a timeout timer that will let us cancel the incoming request gracefully if
@@ -295,15 +327,20 @@ app.get('/export/:userid', async (req, res) => {
 
     // Wait for the stream to complete, by wrapping the stream completion events in a Promise.
     try {
-      await new Promise((resolve, reject) => {
-        dataResponse.data.on('end', resolve);
-        dataResponse.data.on('error', (err) => reject(err));
-        res.on('error', (err) => reject(err));
-        res.on('timeout', async () => {
-          statusCount.inc({ status_code: 408, export_format: exportFormat });
-          reject(new Error('Data export request took too long to complete. Cancelling the request.'));
-        });
-      });
+
+      log.debug(`Waiting stream completion`);
+
+       await new Promise((resolve, reject) => {
+         paramsHistoryResponse.data.on('end', resolve);
+         dataResponse.data.on('error', (err) => reject(err));
+         paramsHistoryResponse.data.on('error', (err) => reject(err));
+         res.on('error', (err) => reject(err));
+         res.on('timeout', async () => {
+           statusCount.inc({ status_code: 408, export_format: exportFormat });
+           reject(new Error('Request took too long to complete. Cancelling the request.'));
+         });
+       });
+
       statusCount.inc({ status_code: 200, export_format: exportFormat });
       log.debug(`Finished downloading data for User ${req.params.userid}`);
     } catch (e) {
