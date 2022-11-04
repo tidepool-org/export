@@ -1,6 +1,6 @@
 # Export
 
-The Tidepool export service.
+The Tidepool export service. 
 
 [![Build Status](https://travis-ci.com/tidepool-org/export.png)](https://travis-ci.com/tidepool-org/export)
 [![Code Climate](https://codeclimate.com/github/tidepool-org/export/badges/gpa.svg)](https://codeclimate.com/github/tidepool-org/export)
