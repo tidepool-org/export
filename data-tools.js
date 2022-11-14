@@ -313,7 +313,7 @@ export default class TidepoolDataTools {
       // Stringify objects configured with { "stringify": true }
       this.stringifyFields(data);
       // Convert BGL data to mg/dL if configured to do so
-      if (processorConfig.bgUnits) {
+      if (processorConfig.bgUnits && data.subType !== 'deviceParameter') {
         this.normalizeBgData(data, processorConfig.bgUnits);
       }
       this.transformData(data, processorConfig);
