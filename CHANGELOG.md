@@ -2,7 +2,7 @@
 Service to export YourLoops data in selected formats, either csv, json or xls.
 
 ## 1.8.1 - 2022-11-14
-### Engineering
+### Fix
 - YLP-1908 Fix json export issue by getting all data from tide
 
 ## 1.8.0 - 2022-10-25
