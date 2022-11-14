@@ -245,8 +245,7 @@ app.get('/export/:userid', async (req, res) => {
     const requestConfig = { headers: (req.headers) ? req.headers : {}};
     requestConfig.responseType = 'stream';
     requestConfig.cancelToken = cancelRequest.token;
-    const dataResponse = await axios.get(`${config.tideWhispererService}/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
-    const paramsHistoryResponse = await axios.get(`${config.tideWhisperer2Service}/v2/parameter-change/${req.params.userid}?${queryString.stringify(queryData)}`, requestConfig);
+    const dataResponse = await axios.get(`${config.tideWhispererService}/${req.params.userid}?${queryString.stringify(queryData)}&withPumpSettings=true`, requestConfig);
 
     log.debug(`Downloading data for User ${req.params.userid}...`);
 
@@ -259,17 +258,12 @@ app.get('/export/:userid', async (req, res) => {
     res.attachment(`data.${exportFormat}`);
     if (exportFormat === 'json') {      
       writeStream = dataTools.jsonStreamWriter();
-      
+
       dataResponse.data
         .pipe(dataTools.jsonParser())
         .pipe(dataTools.splitPumpSettingsData())
         .pipe(dataTools.tidepoolProcessor(processorConfig, filteredType))
-        .pipe(writeStream)
-        .pipe(res);
-
-      paramsHistoryResponse.data
-        .pipe(dataTools.jsonParser())
-        .pipe(dataTools.transformParamsHistoryData())
+        .pipe(dataTools.filterParamsHistoryData(queryData))
         .pipe(writeStream)
         .pipe(res);
     } else if (req.query.format === 'xlsx') {
@@ -287,7 +281,8 @@ app.get('/export/:userid', async (req, res) => {
       dataResponse.data
         .pipe(dataTools.jsonParser())
         .pipe(dataTools.tidepoolProcessor(processorConfig, filteredType))
-        .pipe(es.mapSync(
+          .pipe(dataTools.filterParamsHistoryData(queryData))
+          .pipe(es.mapSync(
           (data) => CSV.stringify(dataTools.allFields.map(
             (field) => {
               if (data[field] === undefined || data[field] === null) {
@@ -297,26 +292,7 @@ app.get('/export/:userid', async (req, res) => {
             },
           )),
         ))
-        .pipe(res, {end:false});
-      // end: false, to keep the stream open after the 'end' event of the pipe
-
-      dataResponse.data.on('end', () => {
-        // once first stream is written to res, we're writing the second stream in res
-        paramsHistoryResponse.data
-            .pipe(dataTools.jsonParser())
-            .pipe(dataTools.transformParamsHistoryData())
-            .pipe(es.mapSync(
-                (data) => CSV.stringify(dataTools.allFields.map(
-                    (field) => {
-                      if (data[field] === undefined || data[field] === null) {
-                        return '';
-                      }
-                      return data[field];
-                    },
-                )),
-            ))
-            .pipe(res);
-      })
+        .pipe(res);
     }
 
     // Create a timeout timer that will let us cancel the incoming request gracefully if
@@ -331,9 +307,8 @@ app.get('/export/:userid', async (req, res) => {
       log.debug(`Waiting stream completion`);
 
        await new Promise((resolve, reject) => {
-         paramsHistoryResponse.data.on('end', resolve);
+         dataResponse.data.on('end', resolve);
          dataResponse.data.on('error', (err) => reject(err));
-         paramsHistoryResponse.data.on('error', (err) => reject(err));
          res.on('error', (err) => reject(err));
          res.on('timeout', async () => {
            statusCount.inc({ status_code: 408, export_format: exportFormat });
