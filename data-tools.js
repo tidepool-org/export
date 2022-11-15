@@ -194,18 +194,29 @@ export default class TidepoolDataTools {
     }
   }
 
-  static transformParamsHistoryData() {
+  static filterParamsHistoryData(queryData) {
+    return es.through(
+      function write(data) {
+        if ((queryData.startDate || queryData.endDate) && data.subType === 'deviceParameter') {
+          const startDateObj = new Date(queryData.startDate)
+          const endDateObj = new Date(queryData.endDate)
+          const dataDateObj = new Date(data.time)
+          if ((queryData.startDate && dataDateObj < startDateObj) || (queryData.endDate && dataDateObj > endDateObj)) {
+            return
+          }
+        }
+        this.emit('data', data)
+      }
+    );
+  }
+
+  static removePumpSettings() {
     return es.through(
         function write(data) {
-          if (data.changeType) {
-            this.emit('data', {...data, type: 'deviceEvent', subType: 'deviceParameter', units: data.unit, time: data.timestamp});
-          } else {
+          if (data.type !== 'pumpSettings') {
             this.emit('data', data)
           }
-        },
-        function end() {
-          this.emit('end');
-        },
+        }
     );
   }
 
@@ -281,9 +292,6 @@ export default class TidepoolDataTools {
           this.emit('data', data);
         }
       },
-      function end() {
-        this.emit('end');
-      },
     );
   }
 
@@ -309,7 +317,7 @@ export default class TidepoolDataTools {
       // Stringify objects configured with { "stringify": true }
       this.stringifyFields(data);
       // Convert BGL data to mg/dL if configured to do so
-      if (processorConfig.bgUnits) {
+      if (processorConfig.bgUnits && data.subType !== 'deviceParameter') {
         this.normalizeBgData(data, processorConfig.bgUnits);
       }
       this.transformData(data, processorConfig);
