@@ -261,12 +261,13 @@ app.get('/export/:userid', async (req, res) => {
 
       dataResponse.data
         .pipe(dataTools.jsonParser())
-        .pipe(dataTools.splitPumpSettingsData())
+        .pipe(dataTools.removePumpSettings())
         .pipe(dataTools.tidepoolProcessor(processorConfig, filteredType))
         .pipe(dataTools.filterParamsHistoryData(queryData))
         .pipe(writeStream)
         .pipe(res);
     } else if (req.query.format === 'xlsx') {
+      /*Unmaintained*/
       writeStream = dataTools.xlsxStreamWriter(res, processorConfig);
 
       dataResponse.data
@@ -280,17 +281,18 @@ app.get('/export/:userid', async (req, res) => {
 
       dataResponse.data
         .pipe(dataTools.jsonParser())
+        .pipe(dataTools.removePumpSettings())
         .pipe(dataTools.tidepoolProcessor(processorConfig, filteredType))
-          .pipe(dataTools.filterParamsHistoryData(queryData))
-          .pipe(es.mapSync(
-          (data) => CSV.stringify(dataTools.allFields.map(
-            (field) => {
-              if (data[field] === undefined || data[field] === null) {
-                return '';
-              }
-              return data[field];
-            },
-          )),
+        .pipe(dataTools.filterParamsHistoryData(queryData))
+        .pipe(es.mapSync(
+        (data) => CSV.stringify(dataTools.allFields.map(
+                (field) => {
+                  if (data[field] === undefined || data[field] === null) {
+                    return '';
+                  }
+                  return data[field];
+                },
+              )),
         ))
         .pipe(res);
     }

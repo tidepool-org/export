@@ -206,10 +206,17 @@ export default class TidepoolDataTools {
           }
         }
         this.emit('data', data)
-      },
-      function end() {
-        this.emit('end');
-      },
+      }
+    );
+  }
+
+  static removePumpSettings() {
+    return es.through(
+        function write(data) {
+          if (data.type !== 'pumpSettings') {
+            this.emit('data', data)
+          }
+        }
     );
   }
 
@@ -284,9 +291,6 @@ export default class TidepoolDataTools {
         } else {
           this.emit('data', data);
         }
-      },
-      function end() {
-        this.emit('end');
       },
     );
   }
