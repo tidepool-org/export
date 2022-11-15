@@ -115,11 +115,6 @@ if (_.isEmpty(config.tideWhispererService)) {
   log.error('TIDE_WHISPERER_SERVICE config value is required.');
   process.exit(1);
 }
-config.tideWhisperer2Service = process.env.TIDE_WHISPERER_2_SERVICE;
-if (_.isEmpty(config.tideWhisperer2Service)) {
-  log.error('TIDE_WHISPERER_2_SERVICE config value is required.');
-  process.exit(1);
-}
 config.sessionSecret = process.env.SESSION_SECRET;
 if (_.isEmpty(config.sessionSecret)) {
   log.error('SESSION_SECRET config value required.');
