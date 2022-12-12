@@ -1,6 +1,10 @@
 # Export
 Service to export YourLoops data in selected formats, either csv, json or xls.
 
+## 1.8.3 - 2022-12-12
+### Engineering
+- Security Fix
+
 ## 1.8.2 - 2022-11-15
 ### Engineering
 - Remove the need to have env var 'TIDE_WHISPERER_2_SERVICE'
