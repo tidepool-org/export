@@ -6,11 +6,10 @@ import http from 'http';
 import https from 'https';
 import express from 'express';
 import bodyParser from 'body-parser';
-import logMaker from './lib/log';
 
 import userDataHandler from './lib/userDataHandler';
 import userReportHandler from './lib/userReportHandler';
-import { exportTimeout, register } from './lib/utils';
+import { exportTimeout, register, logMaker } from './lib/utils';
 
 export const log = logMaker('app.js', {
   level: process.env.DEBUG_LEVEL || 'info',
