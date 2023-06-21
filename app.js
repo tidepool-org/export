@@ -8,9 +8,9 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import logMaker from './lib/log';
 
-import { userDataHandler } from './lib/userDataHandler';
-import { userReportHandler } from './lib/userReportHandler';
-import { exportTimeout } from './lib/utils';
+import userDataHandler from './lib/userDataHandler';
+import userReportHandler from './lib/userReportHandler';
+import { exportTimeout, register } from './lib/utils';
 
 export const log = logMaker('app.js', {
   level: process.env.DEBUG_LEVEL || 'info',
@@ -52,7 +52,7 @@ app.get('/metrics', async (req, res) => {
 app.use(
   bodyParser.urlencoded({
     extended: false,
-  })
+  }),
 );
 
 app.get('/export/:userid', userDataHandler());
@@ -89,7 +89,7 @@ if (config.httpPort) {
 if (config.httpsPort) {
   if (_.isEmpty(config.httpsConfig)) {
     log.error(
-      'SSL endpoint is enabled, but no valid config was found. Exiting.'
+      'SSL endpoint is enabled, but no valid config was found. Exiting.',
     );
     process.exit(1);
   } else {
