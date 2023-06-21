@@ -6,30 +6,17 @@ import http from 'http';
 import https from 'https';
 import express from 'express';
 import bodyParser from 'body-parser';
-import { Registry, Counter } from 'prom-client';
-import logMaker from './log';
-import { userDataExportHandler } from './userDataExportHandler';
-import { userReportExportHandler } from './userReportExportHandler';
+import logMaker from './lib/log';
+
+import { userDataHandler } from './lib/userDataHandler';
+import { userReportHandler } from './lib/userReportHandler';
+import { exportTimeout } from './lib/utils';
 
 export const log = logMaker('app.js', {
   level: process.env.DEBUG_LEVEL || 'info',
 });
 
-const register = new Registry();
-const { collectDefaultMetrics } = client;
-collectDefaultMetrics({ register });
-
-export const createCounter = (name, help, labelNames) =>
-  new Counter({
-    name,
-    help,
-    labelNames,
-    registers: [register],
-  });
-
 const { createTerminus } = require('@godaddy/terminus');
-
-const client = require('prom-client');
 
 function maybeReplaceWithContentsOfFile(obj, field) {
   const potentialFile = obj[field];
@@ -52,10 +39,7 @@ if (process.env.HTTPS_CONFIG) {
 if (!config.httpPort) {
   config.httpPort = 9300;
 }
-config.exportTimeout = _.defaultTo(
-  parseInt(process.env.EXPORT_TIMEOUT, 10),
-  120000
-);
+config.exportTimeout = exportTimeout;
 log.info(`Export download timeout set to ${config.exportTimeout} ms`);
 
 const app = express();
@@ -65,26 +49,15 @@ app.get('/metrics', async (req, res) => {
   res.end(register.metrics());
 });
 
-export function buildHeaders(request) {
-  if (request.headers['x-tidepool-session-token']) {
-    return {
-      headers: {
-        'x-tidepool-session-token': request.headers['x-tidepool-session-token'],
-      },
-    };
-  }
-  return {};
-}
-
 app.use(
   bodyParser.urlencoded({
     extended: false,
   })
 );
 
-app.get('/export/:userid', userDataExportHandler());
+app.get('/export/:userid', userDataHandler());
 
-app.post('/export/report/:userid', userReportExportHandler());
+app.post('/export/report/:userid', userReportHandler());
 
 function beforeShutdown() {
   return new Promise((resolve) => {
