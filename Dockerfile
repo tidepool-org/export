@@ -1,9 +1,9 @@
 ### Stage 0 - Base image
-FROM node:12.14.0-alpine as base
+FROM node:16.20.1-alpine as base
 WORKDIR /app
 RUN apk --no-cache update && \
     apk --no-cache upgrade && \
-    apk add --no-cache --virtual .build-dependencies python make g++ && \
+    apk add --no-cache --virtual .build-dependencies python3 make g++ && \
     mkdir -p node_modules && chown -R node:node .
 
 
