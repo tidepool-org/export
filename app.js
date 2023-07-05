@@ -8,7 +8,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 
 import userDataHandler from './lib/userDataHandler';
-import userReportHandler from './lib/userReportHandler';
+import userReportsHandler from './lib/userReportsHandler';
 import { exportTimeout, register, logMaker } from './lib/utils';
 
 export const log = logMaker('app.js', {
@@ -56,7 +56,8 @@ app.use(
 
 app.get('/export/:userid', userDataHandler());
 
-app.post('/export/report/:userid', userReportHandler());
+
+app.get('/export/report/:userid', userReportsHandler());
 
 function beforeShutdown() {
   return new Promise((resolve) => {
