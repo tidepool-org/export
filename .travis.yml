@@ -29,6 +29,7 @@ services:
 script:
   - yarn run lint
   - ./artifact.sh
+  - yarn test
 
 matrix:
   allow_failures:

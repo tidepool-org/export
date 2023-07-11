@@ -1,20 +1,18 @@
 /* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
-import _ from 'lodash';
-import fs from 'fs';
-import http from 'http';
-import https from 'https';
-import express from 'express';
-import bodyParser from 'body-parser';
-
-import { exportTimeout, register, logMaker } from './lib/utils';
-import handlers from './lib/handlers';
+const _ = require('lodash');
+const fs = require('fs');
+const http = require('http');
+const https = require('https');
+const express = require('express');
+const bodyParser = require('body-parser');
+const { createTerminus } = require('@godaddy/terminus');
+const { exportTimeout, register, logMaker } = require('./lib/utils');
+const handlers = require('./lib/handlers');
 
 export const log = logMaker('app.js', {
   level: process.env.DEBUG_LEVEL || 'info',
 });
-
-const { createTerminus } = require('@godaddy/terminus');
 
 function maybeReplaceWithContentsOfFile(obj, field) {
   const potentialFile = obj[field];
