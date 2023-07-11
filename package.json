@@ -9,7 +9,8 @@
   "scripts": {
     "lint": "eslint --cache --format=node_modules/eslint-formatter-pretty .",
     "lint-fix": "yarn run lint -- --fix",
-    "start": "node -r esm ./app.js"
+    "start": "node -r esm ./app.js",
+    "test": "mocha "
   },
   "license": "BSD-2-Clause",
   "description": "Service to export data from the Tidepool to various file formats",
@@ -41,6 +42,8 @@
     "eslint-plugin-jsx-a11y": "6.2.3",
     "eslint-plugin-lodash": "7.1.0",
     "eslint-plugin-promise": "4.2.1",
-    "eslint-plugin-react": "7.20.0"
+    "eslint-plugin-react": "7.20.0",
+    "mocha": "10.2.0",
+    "rewire": "6.0.0"
   }
 }
