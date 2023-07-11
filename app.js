@@ -7,9 +7,8 @@ import https from 'https';
 import express from 'express';
 import bodyParser from 'body-parser';
 
-import userDataHandler from './lib/userDataHandler';
-import userReportsHandler from './lib/userReportsHandler';
 import { exportTimeout, register, logMaker } from './lib/utils';
+import handlers from './lib/handlers';
 
 export const log = logMaker('app.js', {
   level: process.env.DEBUG_LEVEL || 'info',
@@ -54,10 +53,9 @@ app.use(
   }),
 );
 
-app.get('/export/:userid', userDataHandler());
-
-
-app.get('/export/report/:userid', userReportsHandler());
+app.get('/export/:userid', handlers.getUserData());
+app.get('/export/report/:userid', handlers.getUserReport());
+app.post('/export/report/:userid', handlers.postUserReport());
 
 function beforeShutdown() {
   return new Promise((resolve) => {
