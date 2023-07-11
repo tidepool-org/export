@@ -1,5 +1,4 @@
 {
-  "ignorePatterns": ["pdfkit.js"],
   "extends": "airbnb",
   "parser": "babel-eslint",
   "plugins": ["lodash"],

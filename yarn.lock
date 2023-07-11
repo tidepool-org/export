@@ -286,13 +286,13 @@
     mkdirp "1.0.3"
     moment "2.24.0"
 
-"@tidepool/viz@1.34.0":
-  version "1.34.0"
-  resolved "https://registry.yarnpkg.com/@tidepool/viz/-/viz-1.34.0.tgz#1da3249a1e8cdca293ab83e941b2b578d0c5ac74"
-  integrity sha512-SQ+6IpDBOnKFTdaubcecxog5IJcqE4NNOus4GEzvOetuG7z0TioeK1vJxpA3ZJFLBbREMKJNweJ0mu1o988NcA==
+"@tidepool/viz@1.35.0-web-2348-ssr-pdf.1":
+  version "1.35.0-web-2348-ssr-pdf.1"
+  resolved "https://registry.yarnpkg.com/@tidepool/viz/-/viz-1.35.0-web-2348-ssr-pdf.1.tgz#59a3d7f6528b4056966799d52e7ea88396e7a75a"
+  integrity sha512-D/m9fLgclcH8pif06t53MfCFD4GwRVBU7Pc0ui182QKLjTGDCDFXV3iSOd6LV7tD102S+hLD9YXkyFfPlh5WOw==
   dependencies:
     bluebird "3.5.2"
-    bows "1.7.0"
+    bows "1.7.2"
     classnames "2.2.6"
     crossfilter2 "1.5.2"
     d3-array "1.2.4"
@@ -440,7 +440,7 @@ ajv@^8.0.1:
     require-from-string "^2.0.2"
     uri-js "^4.2.2"
 
-andlog@^1.0.0:
+andlog@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/andlog/-/andlog-1.0.2.tgz#0e77a44f62a782be3a78a7527beb5761c183f044"
   integrity sha512-ne6ibcbv3wqZHzbXarG7NfOpU2ai5ao6429ocq1betBBDDx7KE7R6k0IIeaT29JNko0lA88yVzHRRuxX2wpkHQ==
@@ -782,12 +782,12 @@ body-parser@1.19.0:
     raw-body "2.4.0"
     type-is "~1.6.17"
 
-bows@1.7.0:
-  version "1.7.0"
-  resolved "https://registry.yarnpkg.com/bows/-/bows-1.7.0.tgz#a3598ed9cef61a7a0cab1a7240f291654865ec76"
-  integrity sha512-suR1KW1TB6Qn3x0THTPv/adM81Z5NTpHpyPv/VO7i1MckjB0uZrZPjNtw+i6LWrC/GIrWUGPHS+ZsrXBfJv3Vw==
+bows@1.7.2:
+  version "1.7.2"
+  resolved "https://registry.yarnpkg.com/bows/-/bows-1.7.2.tgz#4deb95d5b78049794cce925a869155b722d2d516"
+  integrity sha512-AeIQNXbTstXOPjIBol9oTnaaO/2ByuExio0AEIx8vqOIJnAAWFfbWWzh7YPiSKYAxJNTjcy+J+xH2jCRb460Yw==
   dependencies:
-    andlog "^1.0.0"
+    andlog "^1.0.2"
 
 brace-expansion@^1.1.7:
   version "1.1.11"
@@ -3320,7 +3320,7 @@ mkdirp@1.0.3:
   dependencies:
     minimist "0.0.8"
 
-mocha@^10.2.0:
+mocha@10.2.0:
   version "10.2.0"
   resolved "https://registry.yarnpkg.com/mocha/-/mocha-10.2.0.tgz#1fd4a7c32ba5ac372e03a17eef435bd00e5c68b8"
   integrity sha512-IDY7fl/BecMwFHzoqF2sg/SHHANeBoMMXFlS9r0OXKDssYE1M5O43wUY/9BVPeIvfH2zmEbBfseqN9gBQZzXkg==
@@ -3723,7 +3723,7 @@ pause-stream@0.0.11:
   dependencies:
     through "~2.3"
 
-pdfkit@>=0.8.1:
+pdfkit@0.13.0, pdfkit@>=0.8.1:
   version "0.13.0"
   resolved "https://registry.yarnpkg.com/pdfkit/-/pdfkit-0.13.0.tgz#da4c2becd63a129e3aae448fdaed4ee7be790f8f"
   integrity sha512-AW79eHU5eLd2vgRDS9z3bSoi0FA+gYm+100LLosrQQMLUzOBGVOhG7ABcMFpJu7Bpg+MT74XYHi4k9EuU/9EZw==
@@ -4229,7 +4229,7 @@ restructure@^2.0.1:
   resolved "https://registry.yarnpkg.com/restructure/-/restructure-2.0.1.tgz#4199745466cfc9bb9e1647746a4c902b7b0049d1"
   integrity sha512-e0dOpjm5DseomnXx2M5lpdZ5zoHqF1+bqdMJUohoYVVQa7cBdnk7fdmeI6byNWP/kiME72EeTiSypTCVnpLiDg==
 
-rewire@^6.0.0:
+rewire@6.0.0:
   version "6.0.0"
   resolved "https://registry.yarnpkg.com/rewire/-/rewire-6.0.0.tgz#54f4fcda4df9928d28af1eb54a318bc51ca9aa99"
   integrity sha512-7sZdz5dptqBCapJYocw9EcppLU62KMEqDLIILJnNET2iqzXHaQfaVP5SOJ06XvjX+dNIDJbzjw0ZWzrgDhtjYg==
