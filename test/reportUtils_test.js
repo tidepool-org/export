@@ -16,15 +16,32 @@ const getBGPrefs = reportUtils.__get__('getBGPrefs');
 
 describe('reportUtils', () => {
   describe('reportDataTypes', () => {
-    it('should have all required data types for query', () => {
-      assert.deepEqual(reportDataTypes, ['cbg',
-        'smbg',
-        'basal',
-        'bolus',
-        'wizard',
-        'food',
-        'pumpSettings',
-        'upload']);
+    it('should have 8 data types', () => {
+      assert.equal(reportDataTypes.length, 8);
+    });
+    it('should include cbg', () => {
+      assert.equal(reportDataTypes.includes('cbg'), true);
+    });
+    it('should include smbg', () => {
+      assert.equal(reportDataTypes.includes('smbg'), true);
+    });
+    it('should include basal', () => {
+      assert.equal(reportDataTypes.includes('basal'), true);
+    });
+    it('should include bolus', () => {
+      assert.equal(reportDataTypes.includes('bolus'), true);
+    });
+    it('should include wizard', () => {
+      assert.equal(reportDataTypes.includes('wizard'), true);
+    });
+    it('should include food', () => {
+      assert.equal(reportDataTypes.includes('food'), true);
+    });
+    it('should include pumpSettings', () => {
+      assert.equal(reportDataTypes.includes('pumpSettings'), true);
+    });
+    it('should include upload', () => {
+      assert.equal(reportDataTypes.includes('upload'), true);
     });
   });
   describe('reportTypes', () => {
