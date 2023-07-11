@@ -51,6 +51,8 @@ app.use(
   }),
 );
 
+app.use(bodyParser.json());
+
 app.get('/export/:userid', handlers.getUserData());
 app.get('/export/report/:userid', handlers.getUserReport());
 app.post('/export/report/:userid', handlers.postUserReport());
