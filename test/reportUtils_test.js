@@ -1,9 +1,10 @@
 /* eslint-disable no-underscore-dangle */
 
 const mocha = require('mocha');
+const moment = require('moment');
 const rewire = require('rewire');
 
-const { describe, it } = mocha;
+const { describe, it, before } = mocha;
 const assert = require('assert');
 
 const reportUtils = rewire('../lib/reportUtils');
@@ -13,6 +14,8 @@ const reportDataTypes = reportUtils.__get__('reportDataTypes');
 const reportTypes = reportUtils.__get__('reportTypes');
 const getTimePrefs = reportUtils.__get__('getTimePrefs');
 const getBGPrefs = reportUtils.__get__('getBGPrefs');
+const buildDataQueries = reportUtils.__get__('buildDataQueries');
+const getQueryOptions = reportUtils.__get__('getQueryOptions');
 
 describe('reportUtils', () => {
   describe('reportDataTypes', () => {
@@ -103,60 +106,265 @@ describe('reportUtils', () => {
       },
     };
     it('should default to mmol/L when nothing set', () => {
-      assert.deepEqual(
-        getBGPrefs(),
-        {
-          bgUnits: mmolLUnits,
-          ...mmolLClasses,
-        },
-      );
+      assert.deepEqual(getBGPrefs(), {
+        bgUnits: mmolLUnits,
+        ...mmolLClasses,
+      });
     });
     it('should use mmol/L when mmol/L units passed', () => {
-      assert.deepEqual(
-        getBGPrefs(mmolLUnits),
-        {
-          bgUnits: mmolLUnits,
-          ...mmolLClasses,
-        },
-      );
+      assert.deepEqual(getBGPrefs(mmolLUnits), {
+        bgUnits: mmolLUnits,
+        ...mmolLClasses,
+      });
     });
     it('should use mg/dL when mg/dL units passed', () => {
-      assert.deepEqual(
-        getBGPrefs(mgdLUnits),
-        {
-          bgUnits: mgdLUnits,
-          ...mgdLClasses,
-        },
-      );
+      assert.deepEqual(getBGPrefs(mgdLUnits), {
+        bgUnits: mgdLUnits,
+        ...mgdLClasses,
+      });
     });
     it('should use default when unmatched units given', () => {
-      assert.deepEqual(
-        getBGPrefs('g'),
-        {
-          bgUnits: mmolLUnits,
-          ...mmolLClasses,
-        },
-      );
+      assert.deepEqual(getBGPrefs('g'), {
+        bgUnits: mmolLUnits,
+        ...mmolLClasses,
+      });
     });
   });
   describe('getTimePrefs', () => {
     it('should default to UTC', () => {
+      assert.deepEqual(getTimePrefs(), {
+        timezoneAware: true,
+        timezoneName: 'UTC',
+      });
+    });
+    it('should set timezoneName name when passed', () => {
+      assert.deepEqual(getTimePrefs('NZ'), {
+        timezoneAware: true,
+        timezoneName: 'NZ',
+      });
+    });
+  });
+  describe('buildDataQueries', () => {
+    it('should return just settings when asked for', () => {
       assert.deepEqual(
-        getTimePrefs(),
+        buildDataQueries(mmolLUnits, getTimePrefs(), reportTypes.settings),
         {
-          timezoneAware: true,
-          timezoneName: 'UTC',
+          settings: {
+            excludedDevices: [],
+            bgPrefs: getBGPrefs(mmolLUnits),
+            metaData: 'latestPumpUpload, bgSources',
+            timePrefs: getTimePrefs(),
+          },
         },
       );
     });
-    it('should set timezoneName name when passed', () => {
+    it('should return just basics when asked for', () => {
       assert.deepEqual(
-        getTimePrefs('NZ'),
+        buildDataQueries(mmolLUnits, getTimePrefs(), reportTypes.basics),
         {
-          timezoneAware: true,
-          timezoneName: 'NZ',
+          basics: {
+            aggregationsByDate: 'basals, boluses, fingersticks, siteChanges',
+            excludedDevices: [],
+            bgPrefs: getBGPrefs(mmolLUnits),
+            bgSource: 'cbg',
+            endpoints: [],
+            excludeDaysWithoutBolus: false,
+            metaData: 'latestPumpUpload, bgSources',
+            stats: [
+              'timeInRange',
+              'averageGlucose',
+              'sensorUsage',
+              'totalInsulin',
+              'carbs',
+              'averageDailyDose',
+              'glucoseManagementIndicator',
+              'standardDev',
+              'coefficientOfVariation',
+              'bgExtents',
+            ],
+            timePrefs: getTimePrefs(),
+          },
         },
       );
+    });
+    it('should return just daily when asked for', () => {
+      assert.deepEqual(
+        buildDataQueries(mgdLUnits, getTimePrefs('NZ'), reportTypes.daily),
+        {
+          daily: {
+            aggregationsByDate: 'dataByDate, statsByDate',
+            excludedDevices: [],
+            bgPrefs: getBGPrefs(mgdLUnits),
+            bgSource: 'cbg',
+            endpoints: [],
+            metaData: 'latestPumpUpload, bgSources',
+            stats: [
+              'timeInRange',
+              'averageGlucose',
+              'totalInsulin',
+              'carbs',
+              'standardDev',
+              'coefficientOfVariation',
+            ],
+            timePrefs: getTimePrefs('NZ'),
+            types: {
+              basal: {},
+              bolus: {},
+              cbg: {},
+              deviceEvent: {},
+              food: {},
+              message: {},
+              smbg: {},
+              wizard: {},
+            },
+          },
+        },
+      );
+    });
+    it('should return just agp when asked for', () => {
+      assert.deepEqual(
+        buildDataQueries(mgdLUnits, getTimePrefs(), reportTypes.agp),
+        {
+          agp: {
+            aggregationsByDate: 'dataByDate, statsByDate',
+            excludedDevices: [],
+            bgPrefs: getBGPrefs(mgdLUnits),
+            bgSource: 'cbg',
+            endpoints: [],
+            metaData: 'latestPumpUpload, bgSources',
+            stats: [
+              'timeInRange',
+              'averageGlucose',
+              'sensorUsage',
+              'glucoseManagementIndicator',
+              'coefficientOfVariation',
+            ],
+            timePrefs: getTimePrefs(),
+            types: {
+              cbg: {},
+            },
+          },
+        },
+      );
+    });
+    it('should return just bgLog when asked for', () => {
+      assert.deepEqual(
+        buildDataQueries(mmolLUnits, getTimePrefs(), reportTypes.bgLog),
+        {
+          bgLog: {
+            aggregationsByDate: 'dataByDate',
+            excludedDevices: [],
+            bgPrefs: getBGPrefs(mmolLUnits),
+            bgSource: 'smbg',
+            endpoints: [],
+            metaData: 'latestPumpUpload, bgSources',
+            stats: [
+              'readingsInRange',
+              'averageGlucose',
+              'standardDev',
+              'coefficientOfVariation',
+            ],
+            timePrefs: getTimePrefs(),
+            types: {
+              smbg: {},
+            },
+          },
+        },
+      );
+    });
+    describe('all reports', () => {
+      let allReportQueries;
+      before(() => {
+        allReportQueries = buildDataQueries(
+          mmolLUnits,
+          getTimePrefs(),
+          reportTypes.all,
+        );
+      });
+      it('should return all 5 report queries when asked for', () => {
+        assert.equal(Object.keys(allReportQueries).length, 5);
+      });
+      it('should include basics report when all report queries when asked for', () => {
+        assert.equal(Object.keys(allReportQueries).includes('basics'), true);
+      });
+      it('should include bgLog report when all report queries when asked for', () => {
+        assert.equal(Object.keys(allReportQueries).includes('bgLog'), true);
+      });
+      it('should include agp report when all report queries when asked for', () => {
+        assert.equal(Object.keys(allReportQueries).includes('agp'), true);
+      });
+      it('should include settings report when all report queries when asked for', () => {
+        assert.equal(Object.keys(allReportQueries).includes('settings'), true);
+      });
+      it('should include daily report when all report queries when asked for', () => {
+        assert.equal(Object.keys(allReportQueries).includes('settings'), true);
+      });
+      it('should not include an `all` report type ', () => {
+        assert.equal(Object.keys(allReportQueries).includes('all'), false);
+      });
+      it('should default to all reports when none specified', () => {
+        assert.equal(
+          Object.keys(buildDataQueries(mmolLUnits, getTimePrefs())).length,
+          5,
+        );
+      });
+    });
+  });
+  describe('getQueryOptions', () => {
+    describe('when dates set from given data', () => {
+      const uploadData = [
+        { type: 'upload', time: '2022-05-25T00:00:00.000Z' },
+        { type: 'smbg', time: '2022-05-30T00:00:00.000Z' },
+        { type: 'upload', time: '2022-06-25T00:00:00.000Z' },
+        { type: 'cbg', time: '2022-07-25T00:00:00.000Z' },
+        { type: 'upload', time: '2022-07-30T00:00:00.000Z' },
+      ];
+      let opts;
+      before(() => {
+        opts = getQueryOptions({
+          units: mgdLUnits,
+          data: uploadData,
+        });
+      });
+      it('should have bgPrefs for given units', () => {
+        assert.deepEqual(opts.bgPrefs, getBGPrefs(mgdLUnits));
+      });
+      it('should have initial as true', () => {
+        assert.equal(opts.initial, true);
+      });
+      it('should have endDate as latest item date + 1 day ', () => {
+        assert.equal(
+          opts.endDate,
+          moment(uploadData[4].time).add(1, 'days').toISOString(),
+        );
+      });
+      it('should have startDate as earliest diabetes datum item date - 30 days', () => {
+        assert.equal(
+          opts.startDate,
+          moment(uploadData[3].time).subtract(30, 'days').toISOString(),
+        );
+      });
+    });
+    describe('when dates given', () => {
+      let opts;
+      before(() => {
+        opts = getQueryOptions({
+          units: mmolLUnits,
+          dates: { start: '2022-06-25T00:00:00.000Z', end: '2022-07-25T00:00:00.000Z' },
+        });
+      });
+      it('should have bgPrefs for given units', () => {
+        assert.deepEqual(opts.bgPrefs, getBGPrefs(mmolLUnits));
+      });
+      it('should have initial as true', () => {
+        assert.equal(opts.initial, true);
+      });
+      it('should have endDate as given', () => {
+        assert.equal(opts.endDate, '2022-07-25T00:00:00.000Z');
+      });
+      it('should have startDate as given', () => {
+        assert.equal(opts.startDate, '2022-06-25T00:00:00.000Z');
+      });
     });
   });
 });
