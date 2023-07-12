@@ -16,6 +16,8 @@ const getTimePrefs = reportUtils.__get__('getTimePrefs');
 const getBGPrefs = reportUtils.__get__('getBGPrefs');
 const buildDataQueries = reportUtils.__get__('buildDataQueries');
 const getQueryOptions = reportUtils.__get__('getQueryOptions');
+const getReportOptions = reportUtils.__get__('getReportOptions');
+const getDateRangeByReport = reportUtils.__get__('getDateRangeByReport');
 
 describe('reportUtils', () => {
   describe('reportDataTypes', () => {
@@ -350,7 +352,10 @@ describe('reportUtils', () => {
       before(() => {
         opts = getQueryOptions({
           units: mmolLUnits,
-          dates: { start: '2022-06-25T00:00:00.000Z', end: '2022-07-25T00:00:00.000Z' },
+          dates: {
+            startDate: '2022-06-25T00:00:00.000Z',
+            endDate: '2022-07-25T00:00:00.000Z',
+          },
         });
       });
       it('should have bgPrefs for given units', () => {
@@ -364,6 +369,112 @@ describe('reportUtils', () => {
       });
       it('should have startDate as given', () => {
         assert.equal(opts.startDate, '2022-06-25T00:00:00.000Z');
+      });
+    });
+  });
+  describe('getReportOptions', () => {
+    describe('when reportDates set', () => {
+      const uploadData = [
+        { type: 'upload', time: '2022-05-25T00:00:00.000Z' },
+        { type: 'smbg', time: '2022-05-30T00:00:00.000Z' },
+        { type: 'upload', time: '2022-06-25T00:00:00.000Z' },
+        { type: 'cbg', time: '2022-07-25T00:00:00.000Z' },
+        { type: 'upload', time: '2022-07-30T00:00:00.000Z' },
+      ];
+      const profile = {
+        fullName: 'some name',
+        patient: {
+          birthday: 'dob92',
+          mrn: 'mrn123',
+        },
+      };
+      let opts;
+      before(() => {
+        opts = getReportOptions({
+          bgUnits: mgdLUnits,
+          data: uploadData,
+          reportDates: {
+            startDate: '2022-06-25T00:00:00.000Z',
+            endDate: '2022-07-25T00:00:00.000Z',
+          },
+          reports: ['basics'],
+          userId: 'user-id',
+          timePrefs: getTimePrefs('NZ'),
+          userProfile: profile,
+        });
+      });
+      it('should set printOptions', () => {
+        const expectedPrintOpts = {
+          endpoints: [
+            moment('2022-06-24T12:00:00.000Z').toDate(),
+            moment('2022-07-25T11:59:59.998Z').toDate(),
+          ],
+          disabled: false,
+        };
+        assert.deepEqual(opts.printOptions, {
+          agp: expectedPrintOpts,
+          basics: expectedPrintOpts,
+          bgLog: expectedPrintOpts,
+          daily: expectedPrintOpts,
+          settings: { disabled: false },
+          patient: {
+            permissions: {},
+            userid: 'user-id',
+            profile,
+            settings: {},
+          },
+        });
+      });
+      it('should set queries for basics only', () => {
+        assert.equal(Object.keys(opts.queries).length, 1);
+        assert.equal(Object.keys(opts.queries).includes('basics'), true);
+      });
+    });
+  });
+  describe('getDateRangeByReport', () => {
+    describe('when dates set', () => {
+      let dateRange;
+      let expectedEndDate;
+      let expectedStartDate;
+      before(() => {
+        dateRange = getDateRangeByReport({
+          timezoneName: 'UTC',
+          reportDates: {
+            startDate: '2022-06-25T00:00:00.000Z',
+            endDate: '2022-07-25T00:00:00.000Z',
+          },
+        });
+        expectedEndDate = moment('2022-07-25T00:00:00.000Z')
+          .tz('UTC')
+          .endOf('day')
+          .subtract(1, 'ms');
+        expectedStartDate = moment('2022-06-25T00:00:00.000Z')
+          .tz('UTC')
+          .startOf('day');
+      });
+      it('should set agp start and end dates', () => {
+        assert.deepEqual(dateRange.agp, {
+          startDate: expectedStartDate,
+          endDate: expectedEndDate,
+        });
+      });
+      it('should set daily start and end dates', () => {
+        assert.deepEqual(dateRange.daily, {
+          startDate: expectedStartDate,
+          endDate: expectedEndDate,
+        });
+      });
+      it('should set bgLog start and end dates', () => {
+        assert.deepEqual(dateRange.bgLog, {
+          startDate: expectedStartDate,
+          endDate: expectedEndDate,
+        });
+      });
+      it('should set basics start and end dates', () => {
+        assert.deepEqual(dateRange.basics, {
+          startDate: expectedStartDate,
+          endDate: expectedEndDate,
+        });
       });
     });
   });
