@@ -286,10 +286,10 @@
     mkdirp "1.0.3"
     moment "2.24.0"
 
-"@tidepool/viz@1.35.0-web-2348-ssr-pdf.1":
-  version "1.35.0-web-2348-ssr-pdf.1"
-  resolved "https://registry.yarnpkg.com/@tidepool/viz/-/viz-1.35.0-web-2348-ssr-pdf.1.tgz#59a3d7f6528b4056966799d52e7ea88396e7a75a"
-  integrity sha512-D/m9fLgclcH8pif06t53MfCFD4GwRVBU7Pc0ui182QKLjTGDCDFXV3iSOd6LV7tD102S+hLD9YXkyFfPlh5WOw==
+"@tidepool/viz@1.35.0-web-2479-ssr-pdf.1":
+  version "1.35.0-web-2479-ssr-pdf.1"
+  resolved "https://registry.yarnpkg.com/@tidepool/viz/-/viz-1.35.0-web-2479-ssr-pdf.1.tgz#a6784cf0ef2cd0b3383c7e77c899582d43388072"
+  integrity sha512-jGbyG/EzwuHOxNpCkdF3fE4ZK6ip7C3+Y1bJr8DbjgDxXembVp1mMLAd20ZzOOA93c8b7C1uzI9yOJLgioasVQ==
   dependencies:
     bluebird "3.5.2"
     bows "1.7.2"
