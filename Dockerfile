@@ -14,7 +14,7 @@ COPY package.json .
 COPY yarn.lock .
 RUN \
   # Build and separate all dependancies required for production
-  yarn install --production && cp -R node_modules production_node_modules \
+  yarn install --production --frozen-lockfile && cp -R node_modules production_node_modules \
   # Build all modules, including `devDependencies`
   && yarn install \
   && yarn cache clean
