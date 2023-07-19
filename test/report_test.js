@@ -393,10 +393,8 @@ describe('report', () => {
               tzName: 'UTC',
               bgUnits: mmolLUnits,
               reports: ['all'],
-              dates: {
-                startDate: '2022-06-25T00:00:00.000Z',
-                endDate: '2022-07-25T00:00:00.000Z',
-              },
+              startDate: '2022-06-25T00:00:00.000Z',
+              endDate: '2022-07-25T00:00:00.000Z',
             },
             requestDetail,
           );
@@ -426,10 +424,8 @@ describe('report', () => {
             tzName: 'UTC',
             bgUnits: mmolLUnits,
             reports: ['all'],
-            dates: {
-              startDate: '2022-06-25T00:00:00.000Z',
-              endDate: '2022-07-10T00:00:00.000Z',
-            },
+            startDate: '2022-06-25T00:00:00.000Z',
+            endDate: '2022-07-10T00:00:00.000Z',
           },
           requestDetail,
         );
@@ -463,10 +459,8 @@ describe('report', () => {
             tzName: 'UTC',
             bgUnits: mmolLUnits,
             reports: ['all'],
-            dates: {
-              startDate: '2022-06-25T00:00:00.000Z',
-              endDate: '2022-07-25T00:00:00.000Z',
-            },
+            startDate: '2022-06-25T00:00:00.000Z',
+            endDate: '2022-07-25T00:00:00.000Z',
           },
           requestDetail,
         );
@@ -515,10 +509,8 @@ describe('report', () => {
             tzName: 'UTC',
             bgUnits: mmolLUnits,
             reports: ['all'],
-            dates: {
-              startDate: '2022-06-25T00:00:00.000Z',
-              endDate: '2022-07-10T00:00:00.000Z',
-            },
+            startDate: '2022-06-25T00:00:00.000Z',
+            endDate: '2022-07-10T00:00:00.000Z',
           },
           requestDetail,
         );
@@ -575,10 +567,8 @@ describe('report', () => {
             tzName: 'NZ',
             bgUnits: mmolLUnits,
             reports: ['all'],
-            dates: {
-              startDate: '2022-06-25T00:00:00.000Z',
-              endDate: '2022-07-25T00:00:00.000Z',
-            },
+            startDate: '2022-06-25T00:00:00.000Z',
+            endDate: '2022-07-25T00:00:00.000Z',
           },
           requestDetail,
         );
