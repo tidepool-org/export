@@ -6,10 +6,10 @@ const moment = require('moment');
 const { describe, it, before } = mocha;
 const assert = require('assert');
 
-const reports = require('../lib/report');
+const reports = require('../lib/report.cjs');
 
 const { Report } = reports;
-const { mmolLUnits, mgdLUnits, logMaker } = require('../lib/utils');
+const { mmolLUnits, mgdLUnits, logMaker } = require('../lib/utils.cjs');
 
 describe('report', () => {
   const testLog = logMaker('report_test.js', {
