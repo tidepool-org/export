@@ -1,15 +1,16 @@
 /* eslint-disable no-underscore-dangle */
 
-const mocha = require('mocha');
-const moment = require('moment');
+import mocha from 'mocha';
+import moment from 'moment';
 
-const { describe, it, before } = mocha;
-const assert = require('assert');
+import { deepEqual, equal } from 'assert';
 
-const reports = require('../lib/report.cjs');
+import reports from '../lib/report.js';
+
+import { mmolLUnits, mgdLUnits, logMaker } from '../lib/utils.js';
 
 const { Report } = reports;
-const { mmolLUnits, mgdLUnits, logMaker } = require('../lib/utils.cjs');
+const { describe, it, before } = mocha;
 
 describe('report', () => {
   const testLog = logMaker('report_test.js', {
@@ -92,7 +93,7 @@ describe('report', () => {
         requestDetail,
       );
 
-      assert.deepEqual(settingReport.buildReportQueries(), {
+      deepEqual(settingReport.buildReportQueries(), {
         settings: {
           excludedDevices: [],
           bgPrefs: expectedMmoLPref,
@@ -112,7 +113,7 @@ describe('report', () => {
         },
         requestDetail,
       );
-      assert.deepEqual(basicsReport.buildReportQueries(), {
+      deepEqual(basicsReport.buildReportQueries(), {
         basics: {
           aggregationsByDate: 'basals, boluses, fingersticks, siteChanges',
           excludedDevices: [],
@@ -148,7 +149,7 @@ describe('report', () => {
         },
         requestDetail,
       );
-      assert.deepEqual(dailyReport.buildReportQueries(), {
+      deepEqual(dailyReport.buildReportQueries(), {
         daily: {
           aggregationsByDate: 'dataByDate, statsByDate',
           excludedDevices: [],
@@ -190,7 +191,7 @@ describe('report', () => {
         requestDetail,
       );
 
-      assert.deepEqual(agpReport.buildReportQueries(), {
+      deepEqual(agpReport.buildReportQueries(), {
         agp: {
           aggregationsByDate: 'dataByDate, statsByDate',
           excludedDevices: [],
@@ -223,7 +224,7 @@ describe('report', () => {
         },
         requestDetail,
       );
-      assert.deepEqual(bgLogReport.buildReportQueries(), {
+      deepEqual(bgLogReport.buildReportQueries(), {
         bgLog: {
           aggregationsByDate: 'dataByDate',
           excludedDevices: [],
@@ -250,25 +251,25 @@ describe('report', () => {
         allReportQueries = report.buildReportQueries();
       });
       it('should return all 5 report queries when asked for', () => {
-        assert.equal(Object.keys(allReportQueries).length, 5);
+        equal(Object.keys(allReportQueries).length, 5);
       });
       it('should include basics report when all report queries when asked for', () => {
-        assert.equal(Object.keys(allReportQueries).includes('basics'), true);
+        equal(Object.keys(allReportQueries).includes('basics'), true);
       });
       it('should include bgLog report when all report queries when asked for', () => {
-        assert.equal(Object.keys(allReportQueries).includes('bgLog'), true);
+        equal(Object.keys(allReportQueries).includes('bgLog'), true);
       });
       it('should include agp report when all report queries when asked for', () => {
-        assert.equal(Object.keys(allReportQueries).includes('agp'), true);
+        equal(Object.keys(allReportQueries).includes('agp'), true);
       });
       it('should include settings report when all report queries when asked for', () => {
-        assert.equal(Object.keys(allReportQueries).includes('settings'), true);
+        equal(Object.keys(allReportQueries).includes('settings'), true);
       });
       it('should include daily report when all report queries when asked for', () => {
-        assert.equal(Object.keys(allReportQueries).includes('settings'), true);
+        equal(Object.keys(allReportQueries).includes('settings'), true);
       });
       it('should not include an `all` report type ', () => {
-        assert.equal(Object.keys(allReportQueries).includes('all'), false);
+        equal(Object.keys(allReportQueries).includes('all'), false);
       });
       it('should default to all reports when none specified', () => {
         const reportDefaultAll = new Report(
@@ -281,7 +282,7 @@ describe('report', () => {
           requestDetail,
         );
 
-        assert.equal(
+        equal(
           Object.keys(reportDefaultAll.buildReportQueries()).length,
           5,
         );
@@ -300,7 +301,7 @@ describe('report', () => {
         },
         requestDetail,
       );
-      assert.deepEqual(r.getTimePrefs(), {
+      deepEqual(r.getTimePrefs(), {
         timezoneAware: true,
         timezoneName: 'NZ',
       });
@@ -315,7 +316,7 @@ describe('report', () => {
         },
         requestDetail,
       );
-      assert.deepEqual(r.getTimePrefs(), {
+      deepEqual(r.getTimePrefs(), {
         timezoneAware: true,
         timezoneName: 'UTC',
       });
@@ -333,7 +334,7 @@ describe('report', () => {
         },
         requestDetail,
       );
-      assert.deepEqual(r.getBGPrefs(), expectedMgdLPref);
+      deepEqual(r.getBGPrefs(), expectedMgdLPref);
     });
     it('should return default bg unit `mmol/L` when not set', () => {
       const r = new Report(
@@ -345,7 +346,7 @@ describe('report', () => {
         },
         requestDetail,
       );
-      assert.deepEqual(r.getBGPrefs(), expectedMmoLPref);
+      deepEqual(r.getBGPrefs(), expectedMmoLPref);
     });
   });
   describe('userDataQueryOptions', () => {
@@ -364,19 +365,19 @@ describe('report', () => {
         });
       });
       it('should have bgPrefs for given units', () => {
-        assert.deepEqual(opts.bgPrefs, expectedMmoLPref);
+        deepEqual(opts.bgPrefs, expectedMmoLPref);
       });
       it('should have initial as true', () => {
-        assert.equal(opts.initial, true);
+        equal(opts.initial, true);
       });
       it('should have endDate as latest item date + 1 day ', () => {
-        assert.equal(
+        equal(
           opts.endDate,
           moment(uploadData[4].time).add(1, 'days').toISOString(),
         );
       });
       it('should have startDate as earliest diabetes datum item date - 30 days', () => {
-        assert.equal(
+        equal(
           opts.startDate,
           moment(uploadData[3].time).subtract(30, 'days').toISOString(),
         );
@@ -401,16 +402,16 @@ describe('report', () => {
           opts = r.userDataQueryOptions({});
         });
         it('should have bgPrefs for given units', () => {
-          assert.deepEqual(opts.bgPrefs, expectedMmoLPref);
+          deepEqual(opts.bgPrefs, expectedMmoLPref);
         });
         it('should have initial as true', () => {
-          assert.equal(opts.initial, true);
+          equal(opts.initial, true);
         });
         it('should have endDate as given', () => {
-          assert.equal(opts.endDate, '2022-07-25T00:00:00.000Z');
+          equal(opts.endDate, '2022-07-25T00:00:00.000Z');
         });
         it('should have startDate as given if dates are >= 30 day difference', () => {
-          assert.equal(opts.startDate, '2022-06-25T00:00:00.000Z');
+          equal(opts.startDate, '2022-06-25T00:00:00.000Z');
         });
       });
     });
@@ -433,16 +434,16 @@ describe('report', () => {
       });
 
       it('should have bgPrefs for given units', () => {
-        assert.deepEqual(opts.bgPrefs, expectedMmoLPref);
+        deepEqual(opts.bgPrefs, expectedMmoLPref);
       });
       it('should have initial as true', () => {
-        assert.equal(opts.initial, true);
+        equal(opts.initial, true);
       });
       it('should have endDate as given', () => {
-        assert.equal(opts.endDate, '2022-07-10T00:00:00.000Z');
+        equal(opts.endDate, '2022-07-10T00:00:00.000Z');
       });
       it('should have startDate as 30 days prior to set end date', () => {
-        assert.equal(opts.startDate, '2022-06-10T00:00:00.000Z');
+        equal(opts.startDate, '2022-06-10T00:00:00.000Z');
       });
     });
   });
@@ -475,25 +476,25 @@ describe('report', () => {
           .startOf('day');
       });
       it('should set agp start and end dates', () => {
-        assert.deepEqual(dateRange.agp, {
+        deepEqual(dateRange.agp, {
           startDate: expectedStartDate,
           endDate: expectedEndDate,
         });
       });
       it('should set daily start and end dates', () => {
-        assert.deepEqual(dateRange.daily, {
+        deepEqual(dateRange.daily, {
           startDate: expectedStartDate,
           endDate: expectedEndDate,
         });
       });
       it('should set bgLog start and end dates', () => {
-        assert.deepEqual(dateRange.bgLog, {
+        deepEqual(dateRange.bgLog, {
           startDate: expectedStartDate,
           endDate: expectedEndDate,
         });
       });
       it('should set basics start and end dates', () => {
-        assert.deepEqual(dateRange.basics, {
+        deepEqual(dateRange.basics, {
           startDate: expectedStartDate,
           endDate: expectedEndDate,
         });
@@ -517,25 +518,25 @@ describe('report', () => {
         dateRange = r.getDateRangeByReport({});
       });
       it('should set agp start and end 15 days apart', () => {
-        assert.deepEqual(
+        deepEqual(
           dateRange.agp.endDate.diff(dateRange.agp.startDate, 'days'),
           15,
         );
       });
       it('should set daily start and end 15 days apart', () => {
-        assert.deepEqual(
+        deepEqual(
           dateRange.daily.endDate.diff(dateRange.daily.startDate, 'days'),
           15,
         );
       });
       it('should set bgLog start and end 30 days apart', () => {
-        assert.deepEqual(
+        deepEqual(
           dateRange.bgLog.endDate.diff(dateRange.bgLog.startDate, 'days'),
           30,
         );
       });
       it('should set basics start and end dates 15 days apart', () => {
-        assert.deepEqual(
+        deepEqual(
           dateRange.basics.endDate.diff(dateRange.basics.startDate, 'days'),
           15,
         );
@@ -582,7 +583,7 @@ describe('report', () => {
           ],
           disabled: false,
         };
-        assert.deepEqual(opts.printOptions, {
+        deepEqual(opts.printOptions, {
           agp: expectedPrintOpts,
           basics: expectedPrintOpts,
           bgLog: expectedPrintOpts,
@@ -597,12 +598,12 @@ describe('report', () => {
         });
       });
       it('should set queries for all reports ', () => {
-        assert.equal(Object.keys(opts.queries).length, 5);
-        assert.equal(Object.keys(opts.queries).includes('basics'), true);
-        assert.equal(Object.keys(opts.queries).includes('settings'), true);
-        assert.equal(Object.keys(opts.queries).includes('agp'), true);
-        assert.equal(Object.keys(opts.queries).includes('daily'), true);
-        assert.equal(Object.keys(opts.queries).includes('bgLog'), true);
+        equal(Object.keys(opts.queries).length, 5);
+        equal(Object.keys(opts.queries).includes('basics'), true);
+        equal(Object.keys(opts.queries).includes('settings'), true);
+        equal(Object.keys(opts.queries).includes('agp'), true);
+        equal(Object.keys(opts.queries).includes('daily'), true);
+        equal(Object.keys(opts.queries).includes('bgLog'), true);
       });
     });
   });

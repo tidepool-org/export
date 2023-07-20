@@ -13,6 +13,7 @@ module.exports = {
         allowForLoopAfterthoughts: true,
       },
     ],
+    'import/extensions': [0, { '<js>': 'always' }],
   },
   settings: {
     lodash: 3,
