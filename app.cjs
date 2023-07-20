@@ -7,10 +7,10 @@ const https = require('https');
 const express = require('express');
 const bodyParser = require('body-parser');
 const { createTerminus } = require('@godaddy/terminus');
-const { exportTimeout, register, logMaker } = require('./lib/utils');
-const handlers = require('./lib/handlers');
+const { exportTimeout, register, logMaker } = require('./lib/utils.cjs');
+const handlers = require('./lib/handlers/index.cjs');
 
-export const log = logMaker('app.js', {
+const log = logMaker('app.js', {
   level: process.env.DEBUG_LEVEL || 'info',
 });
 
@@ -22,7 +22,7 @@ function maybeReplaceWithContentsOfFile(obj, field) {
   }
 }
 
-export const config = {};
+const config = {};
 config.httpPort = process.env.HTTP_PORT;
 config.httpsPort = process.env.HTTPS_PORT;
 if (process.env.HTTPS_CONFIG) {
@@ -98,3 +98,6 @@ if (config.httpsPort) {
     });
   }
 }
+
+module.exports.log = log;
+module.exports.config = config;
