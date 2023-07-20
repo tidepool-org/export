@@ -6,10 +6,11 @@
     "type": "git",
     "url": "https://github.com/tidepool-org/data-export-service-app.git"
   },
+  "type": "module",
   "scripts": {
     "lint": "eslint --cache --format=node_modules/eslint-formatter-pretty .",
     "lint-fix": "yarn run lint -- --fix",
-    "start": "node ./app.cjs",
+    "start": "node ./app.js",
     "test": "mocha "
   },
   "license": "BSD-2-Clause",

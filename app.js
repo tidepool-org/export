@@ -1,28 +1,28 @@
 /* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
-const _ = require('lodash');
-const fs = require('fs');
-const http = require('http');
-const https = require('https');
-const express = require('express');
-const bodyParser = require('body-parser');
-const { createTerminus } = require('@godaddy/terminus');
-const { exportTimeout, register, logMaker } = require('./lib/utils.cjs');
-const handlers = require('./lib/handlers/index.cjs');
+import _ from 'lodash';
+import { existsSync, readFileSync } from 'fs';
+import http from 'http';
+import https from 'https';
+import express from 'express';
+import bodyParser from 'body-parser';
+import { createTerminus } from '@godaddy/terminus';
+import { exportTimeout, register, logMaker } from './lib/utils.js';
+import { getUserData, getUserReport, postUserReport } from './lib/handlers/index.js';
 
-const log = logMaker('app.js', {
+export const log = logMaker('app.js', {
   level: process.env.DEBUG_LEVEL || 'info',
 });
 
 function maybeReplaceWithContentsOfFile(obj, field) {
   const potentialFile = obj[field];
-  if (potentialFile != null && fs.existsSync(potentialFile)) {
+  if (potentialFile != null && existsSync(potentialFile)) {
     // eslint-disable-next-line no-param-reassign
-    obj[field] = fs.readFileSync(potentialFile).toString();
+    obj[field] = readFileSync(potentialFile).toString();
   }
 }
 
-const config = {};
+export const config = {};
 config.httpPort = process.env.HTTP_PORT;
 config.httpsPort = process.env.HTTPS_PORT;
 if (process.env.HTTPS_CONFIG) {
@@ -53,9 +53,9 @@ app.use(
 
 app.use(bodyParser.json());
 
-app.get('/export/:userid', handlers.getUserData());
-app.get('/export/report/:userid', handlers.getUserReport());
-app.post('/export/report/:userid', handlers.postUserReport());
+app.get('/export/:userid', getUserData());
+app.get('/export/report/:userid', getUserReport());
+app.post('/export/report/:userid', postUserReport());
 
 function beforeShutdown() {
   return new Promise((resolve) => {
@@ -98,6 +98,3 @@ if (config.httpsPort) {
     });
   }
 }
-
-module.exports.log = log;
-module.exports.config = config;
