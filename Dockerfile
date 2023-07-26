@@ -29,7 +29,7 @@ COPY --chown=node:node --from=dependencies /app/node_modules ./node_modules
 COPY --chown=node:node . .
 USER node
 EXPOSE 9300
-CMD node -r esm ./app.js
+CMD node ./app.js
 
 
 ### Stage 3 - Test
@@ -46,4 +46,4 @@ COPY --from=dependencies /app/production_node_modules ./node_modules
 COPY --chown=node:node . .
 USER node
 EXPOSE 9300
-CMD node -r esm ./app.js
+CMD node ./app.js
