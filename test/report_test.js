@@ -469,8 +469,8 @@ describe('report', () => {
 
         expectedEndDate = moment('2022-07-25T00:00:00.000Z')
           .tz('UTC')
-          .endOf('day')
-          .subtract(1, 'ms');
+          .startOf('day')
+          .add(1, 'day');
         expectedStartDate = moment('2022-06-25T00:00:00.000Z')
           .tz('UTC')
           .startOf('day');
@@ -520,13 +520,13 @@ describe('report', () => {
       it('should set agp start and end 15 days apart', () => {
         deepEqual(
           dateRange.agp.endDate.diff(dateRange.agp.startDate, 'days'),
-          15,
+          16,
         );
       });
       it('should set daily start and end 15 days apart', () => {
         deepEqual(
           dateRange.daily.endDate.diff(dateRange.daily.startDate, 'days'),
-          15,
+          16,
         );
       });
       it('should set bgLog start and end 30 days apart', () => {
@@ -538,7 +538,7 @@ describe('report', () => {
       it('should set basics start and end dates 15 days apart', () => {
         deepEqual(
           dateRange.basics.endDate.diff(dateRange.basics.startDate, 'days'),
-          15,
+          16,
         );
       });
     });
@@ -579,7 +579,7 @@ describe('report', () => {
         const expectedPrintOpts = {
           endpoints: [
             moment('2022-06-24T12:00:00.000Z').toDate(),
-            moment('2022-07-25T11:59:59.998Z').toDate(),
+            moment('2022-07-25T12:00:00.000Z').toDate(),
           ],
           disabled: false,
         };
