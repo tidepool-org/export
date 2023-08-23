@@ -266,7 +266,7 @@ describe('report', () => {
         equal(Object.keys(allReportQueries).includes('settings'), true);
       });
       it('should include daily report when all report queries when asked for', () => {
-        equal(Object.keys(allReportQueries).includes('settings'), true);
+        equal(Object.keys(allReportQueries).includes('daily'), true);
       });
       it('should not include an `all` report type ', () => {
         equal(Object.keys(allReportQueries).includes('all'), false);
