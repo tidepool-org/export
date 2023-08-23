@@ -431,10 +431,10 @@
     mkdirp "1.0.3"
     moment "2.24.0"
 
-"@tidepool/viz@1.35.0-web-2479-ssr-pdf.1":
-  version "1.35.0-web-2479-ssr-pdf.1"
-  resolved "https://registry.yarnpkg.com/@tidepool/viz/-/viz-1.35.0-web-2479-ssr-pdf.1.tgz#a6784cf0ef2cd0b3383c7e77c899582d43388072"
-  integrity sha512-jGbyG/EzwuHOxNpCkdF3fE4ZK6ip7C3+Y1bJr8DbjgDxXembVp1mMLAd20ZzOOA93c8b7C1uzI9yOJLgioasVQ==
+"@tidepool/viz@1.35.0-web-2479-ssr-pdf.3":
+  version "1.35.0-web-2479-ssr-pdf.3"
+  resolved "https://registry.yarnpkg.com/@tidepool/viz/-/viz-1.35.0-web-2479-ssr-pdf.3.tgz#c506fa968119f87cf031a2344114dc7cdaad8d6b"
+  integrity sha512-7jXsANYNVngR1PUDlcLWiBvEQcdvvQtMUPZQV8qo9XImev+7TXbyHcdDLDWkx5NPRL+qnzog0Xujbh065dUVNQ==
   dependencies:
     bluebird "3.5.2"
     bows "1.7.2"
@@ -456,7 +456,6 @@
     moment "2.29.4"
     moment-timezone "0.5.21"
     parse-svg-path "0.1.2"
-    plotly.js-basic-dist-min "2.20.0"
     prop-types "15.6.2"
     react "16.12.0"
     react-clipboard.js "2.0.16"
@@ -3528,11 +3527,6 @@ picomatch@^2.0.4, picomatch@^2.2.1:
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/picomatch/-/picomatch-2.3.1.tgz#3ba3833733646d9d3e4995946c1365a67fb07a42"
   integrity sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==
-
-plotly.js-basic-dist-min@2.20.0:
-  version "2.20.0"
-  resolved "https://registry.yarnpkg.com/plotly.js-basic-dist-min/-/plotly.js-basic-dist-min-2.20.0.tgz#9dcb93259b54cecde2faf9df466b5b901291a070"
-  integrity sha512-9lg4HsNtazmev5t/BNiA8iDcQcuuVOI4zyt2pgeZvout2eYIhDcYqT9X4+1UquSPUNTt72xsphFzRCX300jDVw==
 
 plur@^4.0.0:
   version "4.0.0"
