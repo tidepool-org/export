@@ -416,10 +416,10 @@
   dependencies:
     tslib "^2.4.0"
 
-"@tidepool/data-tools@2.4.1-esm.3":
-  version "2.4.1-esm.3"
-  resolved "https://registry.yarnpkg.com/@tidepool/data-tools/-/data-tools-2.4.1-esm.3.tgz#42ddd4ef9bed744e883b670fc4a451497fd92573"
-  integrity sha512-LKAk9z2y+CD7iEWse8z3XU1ZRINJ4QjbTdqyK/ToZ0zyCKJ7MK1D9J/rcJicGq7vMFHceoCCy6YHihZwGXGvXQ==
+"@tidepool/data-tools@2.4.1":
+  version "2.4.1"
+  resolved "https://registry.yarnpkg.com/@tidepool/data-tools/-/data-tools-2.4.1.tgz#ce0d6e4f8bebf80e5e3193a882b152c9069e3050"
+  integrity sha512-k5IxoeR3cLnmq6LoTGlG7Lhel6QQlxYWp0woqh9Dai8P9O7CKp6pTbArDvo2UHqNRoxl7Esvz020kw3i9rd9ow==
   dependencies:
     JSONStream "1.3.5"
     commander "4.1.1"
@@ -431,10 +431,10 @@
     mkdirp "1.0.3"
     moment "2.24.0"
 
-"@tidepool/viz@1.35.0-web-2479-ssr-pdf.3":
-  version "1.35.0-web-2479-ssr-pdf.3"
-  resolved "https://registry.yarnpkg.com/@tidepool/viz/-/viz-1.35.0-web-2479-ssr-pdf.3.tgz#c506fa968119f87cf031a2344114dc7cdaad8d6b"
-  integrity sha512-7jXsANYNVngR1PUDlcLWiBvEQcdvvQtMUPZQV8qo9XImev+7TXbyHcdDLDWkx5NPRL+qnzog0Xujbh065dUVNQ==
+"@tidepool/viz@1.36.0":
+  version "1.36.0"
+  resolved "https://registry.yarnpkg.com/@tidepool/viz/-/viz-1.36.0.tgz#c097779b02d6cdaf2b8efb0745fc438515694049"
+  integrity sha512-szP3cDbT074rY/gbhqQxCPrPAtq4ZsOloCgF+2x99ogZp2d1piAPzuu6FIXYQB54FQKDqjs4RRxtA1Rpuo5qGg==
   dependencies:
     bluebird "3.5.2"
     bows "1.7.2"
