@@ -3,7 +3,7 @@ sudo: false
 language: node_js
 
 node_js:
-  - 12.14.0
+  - 16.20.1
   - node
 
 cache: yarn
@@ -28,6 +28,7 @@ services:
 
 script:
   - yarn run lint
+  - yarn test
   - ./artifact.sh
 
 matrix:

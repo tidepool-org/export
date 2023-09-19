@@ -1,9 +1,9 @@
 ### Stage 0 - Base image
-FROM node:12.14.0-alpine as base
+FROM node:16.20.1-alpine as base
 WORKDIR /app
 RUN apk --no-cache update && \
     apk --no-cache upgrade && \
-    apk add --no-cache --virtual .build-dependencies python make g++ && \
+    apk add --no-cache --virtual .build-dependencies python3 make g++ && \
     mkdir -p node_modules && chown -R node:node .
 
 
@@ -14,7 +14,7 @@ COPY package.json .
 COPY yarn.lock .
 RUN \
   # Build and separate all dependancies required for production
-  yarn install --production && cp -R node_modules production_node_modules \
+  yarn install --production --frozen-lockfile && cp -R node_modules production_node_modules \
   # Build all modules, including `devDependencies`
   && yarn install \
   && yarn cache clean
@@ -29,7 +29,7 @@ COPY --chown=node:node --from=dependencies /app/node_modules ./node_modules
 COPY --chown=node:node . .
 USER node
 EXPOSE 9300
-CMD node -r esm ./app.js
+CMD node ./app.js
 
 
 ### Stage 3 - Test
@@ -46,4 +46,4 @@ COPY --from=dependencies /app/production_node_modules ./node_modules
 COPY --chown=node:node . .
 USER node
 EXPOSE 9300
-CMD node -r esm ./app.js
+CMD node ./app.js
