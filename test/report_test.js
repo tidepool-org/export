@@ -81,6 +81,20 @@ describe('report', () => {
   });
 
   describe('buildReportQueries', () => {
+    const data = [];
+    const cbgNonAutoNonOverride = {
+      data: {
+        metaData: {
+          bgSources: {
+            current: 'cbg',
+          },
+          latestPumpUpload: {
+            isAutomatedBasalDevice: false,
+            isSettingsOverrideDevice: false,
+          },
+        },
+      },
+    };
     it('should return just settings when asked for', () => {
       const settingReport = new Report(
         testLog,
@@ -93,7 +107,7 @@ describe('report', () => {
         requestDetail,
       );
 
-      deepEqual(settingReport.buildReportQueries(), {
+      deepEqual(settingReport.buildReportQueries({ data }), {
         settings: {
           excludedDevices: [],
           bgPrefs: expectedMmoLPref,
@@ -113,7 +127,7 @@ describe('report', () => {
         },
         requestDetail,
       );
-      deepEqual(basicsReport.buildReportQueries(), {
+      deepEqual(basicsReport.buildReportQueries(cbgNonAutoNonOverride), {
         basics: {
           aggregationsByDate: 'basals, boluses, fingersticks, siteChanges',
           excludedDevices: [],
@@ -149,7 +163,7 @@ describe('report', () => {
         },
         requestDetail,
       );
-      deepEqual(dailyReport.buildReportQueries(), {
+      deepEqual(dailyReport.buildReportQueries(cbgNonAutoNonOverride), {
         daily: {
           aggregationsByDate: 'dataByDate, statsByDate',
           excludedDevices: [],
@@ -191,7 +205,7 @@ describe('report', () => {
         requestDetail,
       );
 
-      deepEqual(agpReport.buildReportQueries(), {
+      deepEqual(agpReport.buildReportQueries(cbgNonAutoNonOverride), {
         agp: {
           aggregationsByDate: 'dataByDate, statsByDate',
           excludedDevices: [],
@@ -224,7 +238,7 @@ describe('report', () => {
         },
         requestDetail,
       );
-      deepEqual(bgLogReport.buildReportQueries(), {
+      deepEqual(bgLogReport.buildReportQueries(cbgNonAutoNonOverride), {
         bgLog: {
           aggregationsByDate: 'dataByDate',
           excludedDevices: [],
@@ -248,7 +262,7 @@ describe('report', () => {
     describe('all reports', () => {
       let allReportQueries;
       before(() => {
-        allReportQueries = report.buildReportQueries();
+        allReportQueries = report.buildReportQueries(cbgNonAutoNonOverride);
       });
       it('should return all 5 report queries when asked for', () => {
         equal(Object.keys(allReportQueries).length, 5);
@@ -283,7 +297,7 @@ describe('report', () => {
         );
 
         equal(
-          Object.keys(reportDefaultAll.buildReportQueries()).length,
+          Object.keys(reportDefaultAll.buildReportQueries(cbgNonAutoNonOverride)).length,
           5,
         );
       });
@@ -606,6 +620,744 @@ describe('report', () => {
         equal(Object.keys(opts.queries).includes('daily'), true);
         equal(Object.keys(opts.queries).includes('bgLog'), true);
       });
+    });
+  });
+});
+
+describe('getStatsByChartType', () => {
+  const cbgAutoOverride = {
+    metaData: {
+      bgSources: {
+        current: 'cbg',
+      },
+      latestPumpUpload: {
+        isAutomatedBasalDevice: true,
+        isSettingsOverrideDevice: true,
+      },
+    },
+  };
+  const cbgAutoNonOverride = {
+    metaData: {
+      bgSources: {
+        current: 'cbg',
+      },
+      latestPumpUpload: {
+        isAutomatedBasalDevice: true,
+        isSettingsOverrideDevice: false,
+      },
+    },
+  };
+  const cbgNonAutoNonOverride = {
+    metaData: {
+      bgSources: {
+        current: 'cbg',
+      },
+      latestPumpUpload: {
+        isAutomatedBasalDevice: false,
+        isSettingsOverrideDevice: false,
+      },
+    },
+  };
+  const cbgNonAutoOverride = {
+    metaData: {
+      bgSources: {
+        current: 'cbg',
+      },
+      latestPumpUpload: {
+        isAutomatedBasalDevice: false,
+        isSettingsOverrideDevice: true,
+      },
+    },
+  };
+  const smbgAutoOverride = {
+    metaData: {
+      bgSources: {
+        current: 'smbg',
+      },
+      latestPumpUpload: {
+        isAutomatedBasalDevice: true,
+        isSettingsOverrideDevice: true,
+      },
+    },
+  };
+  const smbgNonAutoNonOverride = {
+    metaData: {
+      bgSources: {
+        current: 'smbg',
+      },
+      latestPumpUpload: {
+        isAutomatedBasalDevice: false,
+        isSettingsOverrideDevice: false,
+      },
+    },
+  };
+  const smbgNonAutoOverride = {
+    metaData: {
+      bgSources: {
+        current: 'smbg',
+      },
+      latestPumpUpload: {
+        isAutomatedBasalDevice: false,
+        isSettingsOverrideDevice: true,
+      },
+    },
+  };
+  const smbgAutoNonOverride = {
+    metaData: {
+      bgSources: {
+        current: 'smbg',
+      },
+      latestPumpUpload: {
+        isAutomatedBasalDevice: true,
+        isSettingsOverrideDevice: false,
+      },
+    },
+  };
+
+  const report = new Report(
+    logMaker('report_test.js', {
+      level: process.env.DEBUG_LEVEL || 'info',
+    }),
+    {
+      userId: '1234',
+      fullName: 'Test User',
+      dob: '25-10-1997',
+      mrn: '12345',
+    },
+    {
+      tzName: 'NZ',
+      bgUnits: mmolLUnits,
+      reports: ['all'],
+    },
+    {
+      token: 'token',
+      sessionHeader: { session: 'stuff' },
+    },
+  );
+
+  describe('cbg', () => {
+    it('should return correct stats for basics chart type with cbg selected and auto and override', () => {
+      const chartType = 'basics';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'totalInsulin',
+        'timeInAuto',
+        'timeInOverride',
+        'carbs',
+        'averageDailyDose',
+        'glucoseManagementIndicator',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for basics chart type with cbg selected and auto and no override', () => {
+      const chartType = 'basics';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'totalInsulin',
+        'timeInAuto',
+        'carbs',
+        'averageDailyDose',
+        'glucoseManagementIndicator',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgAutoNonOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for basics chart type with cbg selected and no auto and no override', () => {
+      const chartType = 'basics';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'totalInsulin',
+        'carbs',
+        'averageDailyDose',
+        'glucoseManagementIndicator',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(
+        chartType,
+        cbgNonAutoNonOverride,
+      );
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for basics chart type with cbg selected and no auto and override', () => {
+      const chartType = 'basics';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'totalInsulin',
+        'timeInOverride',
+        'carbs',
+        'averageDailyDose',
+        'glucoseManagementIndicator',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgNonAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for trends chart type with cbg selected and auto and override', () => {
+      const chartType = 'trends';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'totalInsulin',
+        'averageDailyDose',
+        'timeInAuto',
+        'timeInOverride',
+        'glucoseManagementIndicator',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for trends chart type with cbg selected and auto and no override', () => {
+      const chartType = 'trends';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'totalInsulin',
+        'averageDailyDose',
+        'timeInAuto',
+        'glucoseManagementIndicator',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgAutoNonOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for trends chart type with cbg selected and no auto and no override', () => {
+      const chartType = 'trends';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'totalInsulin',
+        'averageDailyDose',
+        'glucoseManagementIndicator',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(
+        chartType,
+        cbgNonAutoNonOverride,
+      );
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for trends chart type with cbg selected and no auto and override', () => {
+      const chartType = 'trends';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'totalInsulin',
+        'averageDailyDose',
+        'timeInOverride',
+        'glucoseManagementIndicator',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgNonAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for daily chart type with cbg selected and auto and override', () => {
+      const chartType = 'daily';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'timeInAuto',
+        'timeInOverride',
+        'carbs',
+        'standardDev',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for daily chart type with cbg selected and auto and no override', () => {
+      const chartType = 'daily';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'timeInAuto',
+        'carbs',
+        'standardDev',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgAutoNonOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for daily chart type with cbg selected and no auto and no override', () => {
+      const chartType = 'daily';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'carbs',
+        'standardDev',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(
+        chartType,
+        cbgNonAutoNonOverride,
+      );
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for daily chart type with cbg selected and no auto and override', () => {
+      const chartType = 'daily';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'timeInOverride',
+        'carbs',
+        'standardDev',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgNonAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agp chart type with cbg selected and auto and override', () => {
+      const chartType = 'agp';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'glucoseManagementIndicator',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agp chart type with cbg selected and auto and no override', () => {
+      const chartType = 'agp';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'glucoseManagementIndicator',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgAutoNonOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agp chart type with cbg selected and no auto and no override', () => {
+      const chartType = 'agp';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'glucoseManagementIndicator',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(
+        chartType,
+        cbgNonAutoNonOverride,
+      );
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agp chart type with cbg selected and no auto and override', () => {
+      const chartType = 'agp';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'glucoseManagementIndicator',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgNonAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for bgLog chart type with cbg selected and auto and override', () => {
+      const chartType = 'bgLog';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'standardDev',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for bgLog chart type with cbg selected and auto and no override', () => {
+      const chartType = 'bgLog';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'standardDev',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgAutoNonOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for bgLog chart type with cbg selected and no auto and no override', () => {
+      const chartType = 'bgLog';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'standardDev',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(
+        chartType,
+        cbgNonAutoNonOverride,
+      );
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for bgLog chart type with cbg selected and no auto and override', () => {
+      const chartType = 'bgLog';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'standardDev',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgNonAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+  });
+
+  describe('smbg', () => {
+    it('should return correct stats for basics chart type with smbg selected and auto and override', () => {
+      const chartType = 'basics';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'timeInAuto',
+        'timeInOverride',
+        'carbs',
+        'averageDailyDose',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for basics chart type with smbg selected and auto and no override', () => {
+      const chartType = 'basics';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'timeInAuto',
+        'carbs',
+        'averageDailyDose',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgAutoNonOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for basics chart type with smbg selected and no auto and no override', () => {
+      const chartType = 'basics';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'carbs',
+        'averageDailyDose',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(
+        chartType,
+        smbgNonAutoNonOverride,
+      );
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for basics chart type with smbg selected and no auto and override', () => {
+      const chartType = 'basics';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'timeInOverride',
+        'carbs',
+        'averageDailyDose',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgNonAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for trends chart type with smbg selected and auto and override', () => {
+      const chartType = 'trends';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'averageDailyDose',
+        'timeInAuto',
+        'timeInOverride',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for trends chart type with smbg selected and auto and no override', () => {
+      const chartType = 'trends';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'averageDailyDose',
+        'timeInAuto',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgAutoNonOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for trends chart type with smbg selected and no auto and no override', () => {
+      const chartType = 'trends';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'averageDailyDose',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(
+        chartType,
+        smbgNonAutoNonOverride,
+      );
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for trends chart type with smbg selected and no auto and override', () => {
+      const chartType = 'trends';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'averageDailyDose',
+        'timeInOverride',
+        'standardDev',
+        'coefficientOfVariation',
+        'bgExtents',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgNonAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for daily chart type with smbg selected and auto and override', () => {
+      const chartType = 'daily';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'timeInAuto',
+        'timeInOverride',
+        'carbs',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for daily chart type with smbg selected and auto and no override', () => {
+      const chartType = 'daily';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'timeInAuto',
+        'carbs',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgAutoNonOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for daily chart type with smbg selected and no auto and no override', () => {
+      const chartType = 'daily';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'carbs',
+      ];
+      const stats = report.getStatsByChartType(
+        chartType,
+        smbgNonAutoNonOverride,
+      );
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for daily chart type with smbg selected and no auto and override', () => {
+      const chartType = 'daily';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'totalInsulin',
+        'timeInOverride',
+        'carbs',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgNonAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agp chart type with smbg selected and auto and override', () => {
+      const chartType = 'agp';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'glucoseManagementIndicator',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agp chart type with smbg selected and auto and no override', () => {
+      const chartType = 'agp';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'glucoseManagementIndicator',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgAutoNonOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agp chart type with smbg selected and no auto and no override', () => {
+      const chartType = 'agp';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'glucoseManagementIndicator',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(
+        chartType,
+        smbgNonAutoNonOverride,
+      );
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agp chart type with smbg selected and no auto and override', () => {
+      const chartType = 'agp';
+      const expectedStats = [
+        'timeInRange',
+        'averageGlucose',
+        'sensorUsage',
+        'glucoseManagementIndicator',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgNonAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for bgLog chart type with smbg selected and auto and override', () => {
+      const chartType = 'bgLog';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'standardDev',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for bgLog chart type with smbg selected and auto and no override', () => {
+      const chartType = 'bgLog';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'standardDev',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgAutoNonOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for bgLog chart type with smbg selected and no auto and no override', () => {
+      const chartType = 'bgLog';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'standardDev',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(
+        chartType,
+        smbgNonAutoNonOverride,
+      );
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for bgLog chart type with smbg selected and no auto and override', () => {
+      const chartType = 'bgLog';
+      const expectedStats = [
+        'readingsInRange',
+        'averageGlucose',
+        'standardDev',
+        'coefficientOfVariation',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgNonAutoOverride);
+      deepEqual(stats, expectedStats);
     });
   });
 });
