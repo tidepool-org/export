@@ -193,20 +193,54 @@ describe('report', () => {
         },
       });
     });
-    it('should return just agp when asked for', () => {
-      const agpReport = new Report(
+    it('should return just agpBGM when asked for', () => {
+      const agpBGMReport = new Report(
         testLog,
         userDetails,
         {
           tzName: 'NZ',
           bgUnits: mgdLUnits,
-          reports: ['agp'],
+          reports: ['agpBGM'],
         },
         requestDetail,
       );
 
-      deepEqual(agpReport.buildReportQueries(cbgNonAutoNonOverride), {
-        agp: {
+      deepEqual(agpBGMReport.buildReportQueries(cbgNonAutoNonOverride), {
+        agpBGM: {
+          aggregationsByDate: 'dataByDate, statsByDate',
+          excludedDevices: [],
+          bgPrefs: expectedMgdLPref,
+          bgSource: 'smbg',
+          endpoints: [],
+          metaData: 'latestPumpUpload, bgSources',
+          stats: [
+            'averageGlucose',
+            'bgExtents',
+            'coefficientOfVariation',
+            'glucoseManagementIndicator',
+            'readingsInRange',
+          ],
+          timePrefs: expectedTZPrefs,
+          types: {
+            smbg: {},
+          },
+        },
+      });
+    });
+    it('should return just agpCGM when asked for', () => {
+      const agpCGMReport = new Report(
+        testLog,
+        userDetails,
+        {
+          tzName: 'NZ',
+          bgUnits: mgdLUnits,
+          reports: ['agpCGM'],
+        },
+        requestDetail,
+      );
+
+      deepEqual(agpCGMReport.buildReportQueries(cbgNonAutoNonOverride), {
+        agpCGM: {
           aggregationsByDate: 'dataByDate, statsByDate',
           excludedDevices: [],
           bgPrefs: expectedMgdLPref,
@@ -214,11 +248,12 @@ describe('report', () => {
           endpoints: [],
           metaData: 'latestPumpUpload, bgSources',
           stats: [
-            'timeInRange',
             'averageGlucose',
-            'sensorUsage',
-            'glucoseManagementIndicator',
+            'bgExtents',
             'coefficientOfVariation',
+            'glucoseManagementIndicator',
+            'sensorUsage',
+            'timeInRange',
           ],
           timePrefs: expectedTZPrefs,
           types: {
@@ -264,8 +299,8 @@ describe('report', () => {
       before(() => {
         allReportQueries = report.buildReportQueries(cbgNonAutoNonOverride);
       });
-      it('should return all 5 report queries when asked for', () => {
-        equal(Object.keys(allReportQueries).length, 5);
+      it('should return all 6 report queries when asked for', () => {
+        equal(Object.keys(allReportQueries).length, 6);
       });
       it('should include basics report when all report queries when asked for', () => {
         equal(Object.keys(allReportQueries).includes('basics'), true);
@@ -273,8 +308,11 @@ describe('report', () => {
       it('should include bgLog report when all report queries when asked for', () => {
         equal(Object.keys(allReportQueries).includes('bgLog'), true);
       });
-      it('should include agp report when all report queries when asked for', () => {
-        equal(Object.keys(allReportQueries).includes('agp'), true);
+      it('should include agpBGM report when all report queries when asked for', () => {
+        equal(Object.keys(allReportQueries).includes('agpBGM'), true);
+      });
+      it('should include agpCGM report when all report queries when asked for', () => {
+        equal(Object.keys(allReportQueries).includes('agpCGM'), true);
       });
       it('should include settings report when all report queries when asked for', () => {
         equal(Object.keys(allReportQueries).includes('settings'), true);
@@ -298,7 +336,7 @@ describe('report', () => {
 
         equal(
           Object.keys(reportDefaultAll.buildReportQueries(cbgNonAutoNonOverride)).length,
-          5,
+          6,
         );
       });
     });
@@ -490,8 +528,14 @@ describe('report', () => {
           .add(1, 'day')
           .startOf('day');
       });
-      it('should set agp start and end dates', () => {
-        deepEqual(dateRange.agp, {
+      it('should set agpBGM start and end dates', () => {
+        deepEqual(dateRange.agpBGM, {
+          startDate: expectedStartDate,
+          endDate: expectedEndDate,
+        });
+      });
+      it('should set agpCGM start and end dates', () => {
+        deepEqual(dateRange.agpCGM, {
           startDate: expectedStartDate,
           endDate: expectedEndDate,
         });
@@ -532,9 +576,15 @@ describe('report', () => {
         );
         dateRange = r.getDateRangeByReport({});
       });
+      it('should set agpBGM start and end 30 days apart', () => {
+        deepEqual(
+          dateRange.agpBGM.endDate.diff(dateRange.agpBGM.startDate, 'days'),
+          30,
+        );
+      });
       it('should set agp start and end 15 days apart', () => {
         deepEqual(
-          dateRange.agp.endDate.diff(dateRange.agp.startDate, 'days'),
+          dateRange.agpCGM.endDate.diff(dateRange.agpCGM.startDate, 'days'),
           15,
         );
       });
@@ -599,7 +649,8 @@ describe('report', () => {
           disabled: false,
         };
         deepEqual(opts.printOptions, {
-          agp: expectedPrintOpts,
+          agpBGM: expectedPrintOpts,
+          agpCGM: expectedPrintOpts,
           basics: expectedPrintOpts,
           bgLog: expectedPrintOpts,
           daily: expectedPrintOpts,
@@ -613,10 +664,11 @@ describe('report', () => {
         });
       });
       it('should set queries for all reports ', () => {
-        equal(Object.keys(opts.queries).length, 5);
+        equal(Object.keys(opts.queries).length, 6);
         equal(Object.keys(opts.queries).includes('basics'), true);
         equal(Object.keys(opts.queries).includes('settings'), true);
-        equal(Object.keys(opts.queries).includes('agp'), true);
+        equal(Object.keys(opts.queries).includes('agpBGM'), true);
+        equal(Object.keys(opts.queries).includes('agpCGM'), true);
         equal(Object.keys(opts.queries).includes('daily'), true);
         equal(Object.keys(opts.queries).includes('bgLog'), true);
       });
@@ -953,40 +1005,43 @@ describe('getStatsByChartType', () => {
       deepEqual(stats, expectedStats);
     });
 
-    it('should return correct stats for agp chart type with cbg selected and auto and override', () => {
-      const chartType = 'agp';
+    it('should return correct stats for agpCGM chart type with cbg selected and auto and override', () => {
+      const chartType = 'agpCGM';
       const expectedStats = [
-        'timeInRange',
         'averageGlucose',
-        'sensorUsage',
-        'glucoseManagementIndicator',
+        'bgExtents',
         'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'sensorUsage',
+        'timeInRange',
       ];
       const stats = report.getStatsByChartType(chartType, cbgAutoOverride);
       deepEqual(stats, expectedStats);
     });
 
-    it('should return correct stats for agp chart type with cbg selected and auto and no override', () => {
-      const chartType = 'agp';
+    it('should return correct stats for agpCGM chart type with cbg selected and auto and no override', () => {
+      const chartType = 'agpCGM';
       const expectedStats = [
-        'timeInRange',
         'averageGlucose',
-        'sensorUsage',
-        'glucoseManagementIndicator',
+        'bgExtents',
         'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'sensorUsage',
+        'timeInRange',
       ];
       const stats = report.getStatsByChartType(chartType, cbgAutoNonOverride);
       deepEqual(stats, expectedStats);
     });
 
-    it('should return correct stats for agp chart type with cbg selected and no auto and no override', () => {
-      const chartType = 'agp';
+    it('should return correct stats for agpCGM chart type with cbg selected and no auto and no override', () => {
+      const chartType = 'agpCGM';
       const expectedStats = [
-        'timeInRange',
         'averageGlucose',
-        'sensorUsage',
-        'glucoseManagementIndicator',
+        'bgExtents',
         'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'sensorUsage',
+        'timeInRange',
       ];
       const stats = report.getStatsByChartType(
         chartType,
@@ -995,14 +1050,70 @@ describe('getStatsByChartType', () => {
       deepEqual(stats, expectedStats);
     });
 
-    it('should return correct stats for agp chart type with cbg selected and no auto and override', () => {
-      const chartType = 'agp';
+    it('should return correct stats for agpCGM chart type with cbg selected and no auto and override', () => {
+      const chartType = 'agpCGM';
       const expectedStats = [
-        'timeInRange',
         'averageGlucose',
-        'sensorUsage',
-        'glucoseManagementIndicator',
+        'bgExtents',
         'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'sensorUsage',
+        'timeInRange',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgNonAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agpBGM chart type with cbg selected and auto and override', () => {
+      const chartType = 'agpBGM';
+      const expectedStats = [
+        'averageGlucose',
+        'bgExtents',
+        'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'readingsInRange',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agpBGM chart type with cbg selected and auto and no override', () => {
+      const chartType = 'agpBGM';
+      const expectedStats = [
+        'averageGlucose',
+        'bgExtents',
+        'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'readingsInRange',
+      ];
+      const stats = report.getStatsByChartType(chartType, cbgAutoNonOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agpBGM chart type with cbg selected and no auto and no override', () => {
+      const chartType = 'agpBGM';
+      const expectedStats = [
+        'averageGlucose',
+        'bgExtents',
+        'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'readingsInRange',
+      ];
+      const stats = report.getStatsByChartType(
+        chartType,
+        cbgNonAutoNonOverride,
+      );
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agpBGM chart type with cbg selected and no auto and override', () => {
+      const chartType = 'agpBGM';
+      const expectedStats = [
+        'averageGlucose',
+        'bgExtents',
+        'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'readingsInRange',
       ];
       const stats = report.getStatsByChartType(chartType, cbgNonAutoOverride);
       deepEqual(stats, expectedStats);
@@ -1254,40 +1365,43 @@ describe('getStatsByChartType', () => {
       deepEqual(stats, expectedStats);
     });
 
-    it('should return correct stats for agp chart type with smbg selected and auto and override', () => {
-      const chartType = 'agp';
+    it('should return correct stats for agpCGM chart type with smbg selected and auto and override', () => {
+      const chartType = 'agpCGM';
       const expectedStats = [
-        'timeInRange',
         'averageGlucose',
-        'sensorUsage',
-        'glucoseManagementIndicator',
+        'bgExtents',
         'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'sensorUsage',
+        'timeInRange',
       ];
       const stats = report.getStatsByChartType(chartType, smbgAutoOverride);
       deepEqual(stats, expectedStats);
     });
 
-    it('should return correct stats for agp chart type with smbg selected and auto and no override', () => {
-      const chartType = 'agp';
+    it('should return correct stats for agpCGM chart type with smbg selected and auto and no override', () => {
+      const chartType = 'agpCGM';
       const expectedStats = [
-        'timeInRange',
         'averageGlucose',
-        'sensorUsage',
-        'glucoseManagementIndicator',
+        'bgExtents',
         'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'sensorUsage',
+        'timeInRange',
       ];
       const stats = report.getStatsByChartType(chartType, smbgAutoNonOverride);
       deepEqual(stats, expectedStats);
     });
 
-    it('should return correct stats for agp chart type with smbg selected and no auto and no override', () => {
-      const chartType = 'agp';
+    it('should return correct stats for agpCGM chart type with smbg selected and no auto and no override', () => {
+      const chartType = 'agpCGM';
       const expectedStats = [
-        'timeInRange',
         'averageGlucose',
-        'sensorUsage',
-        'glucoseManagementIndicator',
+        'bgExtents',
         'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'sensorUsage',
+        'timeInRange',
       ];
       const stats = report.getStatsByChartType(
         chartType,
@@ -1296,14 +1410,70 @@ describe('getStatsByChartType', () => {
       deepEqual(stats, expectedStats);
     });
 
-    it('should return correct stats for agp chart type with smbg selected and no auto and override', () => {
-      const chartType = 'agp';
+    it('should return correct stats for agpCGM chart type with smbg selected and no auto and override', () => {
+      const chartType = 'agpCGM';
       const expectedStats = [
-        'timeInRange',
         'averageGlucose',
-        'sensorUsage',
-        'glucoseManagementIndicator',
+        'bgExtents',
         'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'sensorUsage',
+        'timeInRange',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgNonAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agpBGM chart type with smbg selected and auto and override', () => {
+      const chartType = 'agpBGM';
+      const expectedStats = [
+        'averageGlucose',
+        'bgExtents',
+        'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'readingsInRange',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgAutoOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agpBGM chart type with smbg selected and auto and no override', () => {
+      const chartType = 'agpBGM';
+      const expectedStats = [
+        'averageGlucose',
+        'bgExtents',
+        'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'readingsInRange',
+      ];
+      const stats = report.getStatsByChartType(chartType, smbgAutoNonOverride);
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agpBGM chart type with smbg selected and no auto and no override', () => {
+      const chartType = 'agpBGM';
+      const expectedStats = [
+        'averageGlucose',
+        'bgExtents',
+        'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'readingsInRange',
+      ];
+      const stats = report.getStatsByChartType(
+        chartType,
+        smbgNonAutoNonOverride,
+      );
+      deepEqual(stats, expectedStats);
+    });
+
+    it('should return correct stats for agpBGM chart type with smbg selected and no auto and override', () => {
+      const chartType = 'agpBGM';
+      const expectedStats = [
+        'averageGlucose',
+        'bgExtents',
+        'coefficientOfVariation',
+        'glucoseManagementIndicator',
+        'readingsInRange',
       ];
       const stats = report.getStatsByChartType(chartType, smbgNonAutoOverride);
       deepEqual(stats, expectedStats);
