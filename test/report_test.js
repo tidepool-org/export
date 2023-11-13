@@ -582,7 +582,7 @@ describe('report', () => {
           30,
         );
       });
-      it('should set agp start and end 15 days apart', () => {
+      it('should set agpCGM start and end 15 days apart', () => {
         deepEqual(
           dateRange.agpCGM.endDate.diff(dateRange.agpCGM.startDate, 'days'),
           15,
