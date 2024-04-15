@@ -20,6 +20,7 @@ RUN yarn cache clean
 ### Stage 2 - Development image
 FROM base as development
 ENV NODE_ENV=development
+USER node
 COPY --from=dependencies /app/node_modules_development ./node_modules
 COPY . .
 USER nobody
@@ -28,10 +29,12 @@ CMD ["node", "./app.js"]
 
 ### Stage 3 - Test
 FROM development as test
-RUN yarn lint
+USER node
+RUN yarn run lint
 
 ### Stage 4 - Production image
 FROM base as production
+USER node
 ENV NODE_ENV=production
 COPY --from=dependencies /app/node_modules_production ./node_modules
 COPY . .
