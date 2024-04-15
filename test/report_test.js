@@ -1,7 +1,7 @@
 /* eslint-disable no-underscore-dangle */
 
 import mocha from 'mocha';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import { deepEqual, equal } from 'assert';
 
