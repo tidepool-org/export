@@ -3,3 +3,14 @@ npm-debug.log
 .git
 .gitignore
 *.log
+
+# yarn (ref https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored)
+.pnp.*
+.yarn/
+.yarn-cache/
+
+.eslintcache/
+
+.vscode/
+*.envrc
+*.env
