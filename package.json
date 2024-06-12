@@ -18,7 +18,7 @@
   "author": "Lennart Goedhart <lennart@tidepool.org>",
   "dependencies": {
     "@godaddy/terminus": "4.12.1",
-    "@tidepool/data-tools": "2.4.2-alpha.2",
+    "@tidepool/data-tools": "2.4.2",
     "@tidepool/viz": "1.37.0",
     "axios": "1.6.8",
     "blob-stream": "0.1.3",

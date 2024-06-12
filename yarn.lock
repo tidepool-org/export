@@ -670,9 +670,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tidepool/data-tools@npm:2.4.2-alpha.2":
-  version: 2.4.2-alpha.2
-  resolution: "@tidepool/data-tools@npm:2.4.2-alpha.2"
+"@tidepool/data-tools@npm:2.4.2":
+  version: 2.4.2
+  resolution: "@tidepool/data-tools@npm:2.4.2"
   dependencies:
     JSONStream: 1.3.5
     commander: 4.1.1
@@ -685,7 +685,7 @@ __metadata:
     moment: 2.29.4
   bin:
     tidepool-data-tools: cli.sh
-  checksum: 11c95207db27c1eee969e6ef911dbc8168b7f39dd167a0cb27d19f583d48b5b8aad4d46670f8ff066e9b19b013141aa3d6ce82ce54e1e926b24135c8ac87c26b
+  checksum: c1950cf3f1a2832276fc11195886ebe4a28a683d350825e9c273badc4b9c4fc73fede08ab581021537548a9a54c32853a714d8ad13a48805a8def9a26d7d9457
   languageName: node
   linkType: hard
 
@@ -696,7 +696,7 @@ __metadata:
     "@babel/core": 7.23.0
     "@babel/eslint-parser": 7.22.15
     "@godaddy/terminus": 4.12.1
-    "@tidepool/data-tools": 2.4.2-alpha.2
+    "@tidepool/data-tools": 2.4.2
     "@tidepool/viz": 1.37.0
     axios: 1.6.8
     babel-core: 7.0.0-bridge.0
