@@ -39,7 +39,6 @@ FROM base AS build
 USER node
 COPY --from=dependencies /app/node_modules_development ./node_modules
 COPY . .
-RUN ls -lah
 RUN node esbuild.config.js
 
 ### Stage 5 - Production image
