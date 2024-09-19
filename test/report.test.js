@@ -1,16 +1,12 @@
 /* eslint-disable no-underscore-dangle */
 
-import mocha from 'mocha';
 import moment from 'moment-timezone';
 
-import { deepEqual, equal } from 'assert';
+import reports from '../lib/report.mjs';
 
-import reports from '../lib/report.js';
-
-import { mmolLUnits, mgdLUnits, logMaker } from '../lib/utils.js';
+import { mmolLUnits, mgdLUnits, logMaker } from '../lib/utils.mjs';
 
 const { Report } = reports;
-const { describe, it, before } = mocha;
 
 describe('report', () => {
   const testLog = logMaker('report_test.js', {
@@ -67,7 +63,8 @@ describe('report', () => {
     timezoneName: 'NZ',
   };
   let report;
-  before(() => {
+
+  beforeAll(() => {
     report = new Report(
       testLog,
       userDetails,
@@ -95,6 +92,7 @@ describe('report', () => {
         },
       },
     };
+
     it('should return just settings when asked for', () => {
       const settingReport = new Report(
         testLog,
@@ -107,7 +105,7 @@ describe('report', () => {
         requestDetail,
       );
 
-      deepEqual(settingReport.buildReportQueries({ data }), {
+      expect(settingReport.buildReportQueries({ data })).toEqual({
         settings: {
           excludedDevices: [],
           bgPrefs: expectedMmoLPref,
@@ -116,6 +114,7 @@ describe('report', () => {
         },
       });
     });
+
     it('should return just basics when asked for', () => {
       const basicsReport = new Report(
         testLog,
@@ -127,7 +126,8 @@ describe('report', () => {
         },
         requestDetail,
       );
-      deepEqual(basicsReport.buildReportQueries(cbgNonAutoNonOverride), {
+
+      expect(basicsReport.buildReportQueries(cbgNonAutoNonOverride)).toEqual({
         basics: {
           aggregationsByDate: 'basals, boluses, fingersticks, siteChanges',
           excludedDevices: [],
@@ -152,6 +152,7 @@ describe('report', () => {
         },
       });
     });
+
     it('should return just daily when asked for', () => {
       const dailyReport = new Report(
         testLog,
@@ -163,7 +164,8 @@ describe('report', () => {
         },
         requestDetail,
       );
-      deepEqual(dailyReport.buildReportQueries(cbgNonAutoNonOverride), {
+
+      expect(dailyReport.buildReportQueries(cbgNonAutoNonOverride)).toEqual({
         daily: {
           aggregationsByDate: 'dataByDate, statsByDate',
           excludedDevices: [],
@@ -193,6 +195,7 @@ describe('report', () => {
         },
       });
     });
+
     it('should return just agpBGM when asked for', () => {
       const agpBGMReport = new Report(
         testLog,
@@ -205,7 +208,7 @@ describe('report', () => {
         requestDetail,
       );
 
-      deepEqual(agpBGMReport.buildReportQueries(cbgNonAutoNonOverride), {
+      expect(agpBGMReport.buildReportQueries(cbgNonAutoNonOverride)).toEqual({
         agpBGM: {
           aggregationsByDate: 'dataByDate, statsByDate',
           excludedDevices: [],
@@ -227,6 +230,7 @@ describe('report', () => {
         },
       });
     });
+
     it('should return just agpCGM when asked for', () => {
       const agpCGMReport = new Report(
         testLog,
@@ -239,7 +243,7 @@ describe('report', () => {
         requestDetail,
       );
 
-      deepEqual(agpCGMReport.buildReportQueries(cbgNonAutoNonOverride), {
+      expect(agpCGMReport.buildReportQueries(cbgNonAutoNonOverride)).toEqual({
         agpCGM: {
           aggregationsByDate: 'dataByDate, statsByDate',
           excludedDevices: [],
@@ -262,6 +266,7 @@ describe('report', () => {
         },
       });
     });
+
     it('should return just bgLog when asked for', () => {
       const bgLogReport = new Report(
         testLog,
@@ -273,7 +278,8 @@ describe('report', () => {
         },
         requestDetail,
       );
-      deepEqual(bgLogReport.buildReportQueries(cbgNonAutoNonOverride), {
+
+      expect(bgLogReport.buildReportQueries(cbgNonAutoNonOverride)).toEqual({
         bgLog: {
           aggregationsByDate: 'dataByDate',
           excludedDevices: [],
@@ -294,35 +300,46 @@ describe('report', () => {
         },
       });
     });
+
     describe('all reports', () => {
       let allReportQueries;
-      before(() => {
+
+      beforeAll(() => {
         allReportQueries = report.buildReportQueries(cbgNonAutoNonOverride);
       });
+
       it('should return all 6 report queries when asked for', () => {
-        equal(Object.keys(allReportQueries).length, 6);
+        expect(Object.keys(allReportQueries).length).toBe(6);
       });
+
       it('should include basics report when all report queries when asked for', () => {
-        equal(Object.keys(allReportQueries).includes('basics'), true);
+        expect(Object.keys(allReportQueries).includes('basics')).toBe(true);
       });
+
       it('should include bgLog report when all report queries when asked for', () => {
-        equal(Object.keys(allReportQueries).includes('bgLog'), true);
+        expect(Object.keys(allReportQueries).includes('bgLog')).toBe(true);
       });
+
       it('should include agpBGM report when all report queries when asked for', () => {
-        equal(Object.keys(allReportQueries).includes('agpBGM'), true);
+        expect(Object.keys(allReportQueries).includes('agpBGM')).toBe(true);
       });
+
       it('should include agpCGM report when all report queries when asked for', () => {
-        equal(Object.keys(allReportQueries).includes('agpCGM'), true);
+        expect(Object.keys(allReportQueries).includes('agpCGM')).toBe(true);
       });
+
       it('should include settings report when all report queries when asked for', () => {
-        equal(Object.keys(allReportQueries).includes('settings'), true);
+        expect(Object.keys(allReportQueries).includes('settings')).toBe(true);
       });
+
       it('should include daily report when all report queries when asked for', () => {
-        equal(Object.keys(allReportQueries).includes('daily'), true);
+        expect(Object.keys(allReportQueries).includes('daily')).toBe(true);
       });
+
       it('should not include an `all` report type ', () => {
-        equal(Object.keys(allReportQueries).includes('all'), false);
+        expect(Object.keys(allReportQueries).includes('all')).toBe(false);
       });
+
       it('should default to all reports when none specified', () => {
         const reportDefaultAll = new Report(
           testLog,
@@ -334,13 +351,15 @@ describe('report', () => {
           requestDetail,
         );
 
-        equal(
-          Object.keys(reportDefaultAll.buildReportQueries(cbgNonAutoNonOverride)).length,
-          6,
-        );
+        expect(
+          Object.keys(
+            reportDefaultAll.buildReportQueries(cbgNonAutoNonOverride),
+          ).length,
+        ).toBe(6);
       });
     });
   });
+
   describe('getTimePrefs', () => {
     it('should return given tz name when passed to constructor', () => {
       const r = new Report(
@@ -353,11 +372,13 @@ describe('report', () => {
         },
         requestDetail,
       );
-      deepEqual(r.getTimePrefs(), {
+
+      expect(r.getTimePrefs()).toEqual({
         timezoneAware: true,
         timezoneName: 'NZ',
       });
     });
+
     it('should return default tz name `UTC` when not set', () => {
       const r = new Report(
         testLog,
@@ -368,12 +389,14 @@ describe('report', () => {
         },
         requestDetail,
       );
-      deepEqual(r.getTimePrefs(), {
+
+      expect(r.getTimePrefs()).toEqual({
         timezoneAware: true,
         timezoneName: 'UTC',
       });
     });
   });
+
   describe('getBGPrefs', () => {
     it('should return given bg units passed to constructor', () => {
       const r = new Report(
@@ -386,8 +409,10 @@ describe('report', () => {
         },
         requestDetail,
       );
-      deepEqual(r.getBGPrefs(), expectedMgdLPref);
+
+      expect(r.getBGPrefs()).toEqual(expectedMgdLPref);
     });
+
     it('should return default bg unit `mmol/L` when not set', () => {
       const r = new Report(
         testLog,
@@ -398,9 +423,11 @@ describe('report', () => {
         },
         requestDetail,
       );
-      deepEqual(r.getBGPrefs(), expectedMmoLPref);
+
+      expect(r.getBGPrefs()).toEqual(expectedMmoLPref);
     });
   });
+
   describe('userDataQueryOptions', () => {
     describe('when dates set from last upload data', () => {
       const uploadData = [
@@ -411,34 +438,39 @@ describe('report', () => {
         { type: 'upload', time: '2022-07-30T00:00:00.000Z' },
       ];
       let opts;
-      before(() => {
+
+      beforeAll(() => {
         opts = report.userDataQueryOptions({
           data: uploadData,
         });
       });
+
       it('should have bgPrefs for given units', () => {
-        deepEqual(opts.bgPrefs, expectedMmoLPref);
+        expect(opts.bgPrefs).toEqual(expectedMmoLPref);
       });
+
       it('should have initial as true', () => {
-        equal(opts.initial, true);
+        expect(opts.initial).toBe(true);
       });
+
       it('should have endDate as latest item date + 1 day ', () => {
-        equal(
-          opts.endDate,
+        expect(opts.endDate).toBe(
           moment(uploadData[4].time).add(1, 'days').toISOString(),
         );
       });
+
       it('should have startDate as earliest diabetes datum item date - 30 days', () => {
-        equal(
-          opts.startDate,
+        expect(opts.startDate).toBe(
           moment(uploadData[3].time).subtract(30, 'days').toISOString(),
         );
       });
     });
+
     describe('when dates params used', () => {
       describe('and dates have a 30 day or greater difference', () => {
         let opts;
-        before(() => {
+
+        beforeAll(() => {
           const r = new Report(
             testLog,
             userDetails,
@@ -453,23 +485,29 @@ describe('report', () => {
           );
           opts = r.userDataQueryOptions({});
         });
+
         it('should have bgPrefs for given units', () => {
-          deepEqual(opts.bgPrefs, expectedMmoLPref);
+          expect(opts.bgPrefs).toEqual(expectedMmoLPref);
         });
+
         it('should have initial as true', () => {
-          equal(opts.initial, true);
+          expect(opts.initial).toBe(true);
         });
+
         it('should have endDate as given', () => {
-          equal(opts.endDate, '2022-07-25T00:00:00.000Z');
+          expect(opts.endDate).toBe('2022-07-25T00:00:00.000Z');
         });
+
         it('should have startDate as given if dates are >= 30 day difference', () => {
-          equal(opts.startDate, '2022-06-25T00:00:00.000Z');
+          expect(opts.startDate).toBe('2022-06-25T00:00:00.000Z');
         });
       });
     });
+
     describe('and dates have a less than 30 day difference', () => {
       let opts;
-      before(() => {
+
+      beforeAll(() => {
         const r = new Report(
           testLog,
           userDetails,
@@ -486,25 +524,30 @@ describe('report', () => {
       });
 
       it('should have bgPrefs for given units', () => {
-        deepEqual(opts.bgPrefs, expectedMmoLPref);
+        expect(opts.bgPrefs).toEqual(expectedMmoLPref);
       });
+
       it('should have initial as true', () => {
-        equal(opts.initial, true);
+        expect(opts.initial).toBe(true);
       });
+
       it('should have endDate as given', () => {
-        equal(opts.endDate, '2022-07-10T00:00:00.000Z');
+        expect(opts.endDate).toBe('2022-07-10T00:00:00.000Z');
       });
+
       it('should have startDate as 30 days prior to set end date', () => {
-        equal(opts.startDate, '2022-06-10T00:00:00.000Z');
+        expect(opts.startDate).toBe('2022-06-10T00:00:00.000Z');
       });
     });
   });
+
   describe('getDateRangeByReport', () => {
     describe('when dates set', () => {
       let dateRange;
       let expectedEndDate;
       let expectedStartDate;
-      before(() => {
+
+      beforeAll(() => {
         const r = new Report(
           testLog,
           userDetails,
@@ -528,40 +571,47 @@ describe('report', () => {
           .add(1, 'day')
           .startOf('day');
       });
+
       it('should set agpBGM start and end dates', () => {
-        deepEqual(dateRange.agpBGM, {
+        expect(dateRange.agpBGM).toEqual({
           startDate: expectedStartDate,
           endDate: expectedEndDate,
         });
       });
+
       it('should set agpCGM start and end dates', () => {
-        deepEqual(dateRange.agpCGM, {
+        expect(dateRange.agpCGM).toEqual({
           startDate: expectedStartDate,
           endDate: expectedEndDate,
         });
       });
+
       it('should set daily start and end dates', () => {
-        deepEqual(dateRange.daily, {
+        expect(dateRange.daily).toEqual({
           startDate: expectedStartDate,
           endDate: expectedEndDate,
         });
       });
+
       it('should set bgLog start and end dates', () => {
-        deepEqual(dateRange.bgLog, {
+        expect(dateRange.bgLog).toEqual({
           startDate: expectedStartDate,
           endDate: expectedEndDate,
         });
       });
+
       it('should set basics start and end dates', () => {
-        deepEqual(dateRange.basics, {
+        expect(dateRange.basics).toEqual({
           startDate: expectedStartDate,
           endDate: expectedEndDate,
         });
       });
     });
+
     describe('when dates set less than 30 days apart', () => {
       let dateRange;
-      before(() => {
+
+      beforeAll(() => {
         const r = new Report(
           testLog,
           userDetails,
@@ -576,38 +626,39 @@ describe('report', () => {
         );
         dateRange = r.getDateRangeByReport({});
       });
+
       it('should set agpBGM start and end 30 days apart', () => {
-        deepEqual(
+        expect(
           dateRange.agpBGM.endDate.diff(dateRange.agpBGM.startDate, 'days'),
-          30,
-        );
+        ).toBe(30);
       });
+
       it('should set agpCGM start and end 15 days apart', () => {
-        deepEqual(
+        expect(
           dateRange.agpCGM.endDate.diff(dateRange.agpCGM.startDate, 'days'),
-          15,
-        );
+        ).toBe(15);
       });
+
       it('should set daily start and end 15 days apart', () => {
-        deepEqual(
+        expect(
           dateRange.daily.endDate.diff(dateRange.daily.startDate, 'days'),
-          15,
-        );
+        ).toBe(15);
       });
+
       it('should set bgLog start and end 30 days apart', () => {
-        deepEqual(
+        expect(
           dateRange.bgLog.endDate.diff(dateRange.bgLog.startDate, 'days'),
-          30,
-        );
+        ).toBe(30);
       });
+
       it('should set basics start and end dates 15 days apart', () => {
-        deepEqual(
+        expect(
           dateRange.basics.endDate.diff(dateRange.basics.startDate, 'days'),
-          15,
-        );
+        ).toBe(15);
       });
     });
   });
+
   describe('getReportOptions', () => {
     describe('when dates set', () => {
       const uploadData = [
@@ -625,7 +676,8 @@ describe('report', () => {
         },
       };
       let opts;
-      before(() => {
+
+      beforeAll(() => {
         const r = new Report(
           testLog,
           userDetails,
@@ -640,6 +692,7 @@ describe('report', () => {
         );
         opts = r.getReportOptions({ data: uploadData });
       });
+
       it('should set printOptions', () => {
         const expectedPrintOpts = {
           endpoints: [
@@ -648,7 +701,7 @@ describe('report', () => {
           ],
           disabled: false,
         };
-        deepEqual(opts.printOptions, {
+        expect(opts.printOptions).toEqual({
           agpBGM: expectedPrintOpts,
           agpCGM: expectedPrintOpts,
           basics: expectedPrintOpts,
@@ -663,14 +716,15 @@ describe('report', () => {
           },
         });
       });
+
       it('should set queries for all reports ', () => {
-        equal(Object.keys(opts.queries).length, 6);
-        equal(Object.keys(opts.queries).includes('basics'), true);
-        equal(Object.keys(opts.queries).includes('settings'), true);
-        equal(Object.keys(opts.queries).includes('agpBGM'), true);
-        equal(Object.keys(opts.queries).includes('agpCGM'), true);
-        equal(Object.keys(opts.queries).includes('daily'), true);
-        equal(Object.keys(opts.queries).includes('bgLog'), true);
+        expect(Object.keys(opts.queries).length).toBe(6);
+        expect(Object.keys(opts.queries).includes('basics')).toBe(true);
+        expect(Object.keys(opts.queries).includes('settings')).toBe(true);
+        expect(Object.keys(opts.queries).includes('agpBGM')).toBe(true);
+        expect(Object.keys(opts.queries).includes('agpCGM')).toBe(true);
+        expect(Object.keys(opts.queries).includes('daily')).toBe(true);
+        expect(Object.keys(opts.queries).includes('bgLog')).toBe(true);
       });
     });
   });
@@ -805,7 +859,7 @@ describe('getStatsByChartType', () => {
         'bgExtents',
       ];
       const stats = report.getStatsByChartType(chartType, cbgAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for basics chart type with cbg selected and auto and no override', () => {
@@ -824,7 +878,7 @@ describe('getStatsByChartType', () => {
         'bgExtents',
       ];
       const stats = report.getStatsByChartType(chartType, cbgAutoNonOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for basics chart type with cbg selected and no auto and no override', () => {
@@ -845,7 +899,7 @@ describe('getStatsByChartType', () => {
         chartType,
         cbgNonAutoNonOverride,
       );
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for basics chart type with cbg selected and no auto and override', () => {
@@ -864,7 +918,7 @@ describe('getStatsByChartType', () => {
         'bgExtents',
       ];
       const stats = report.getStatsByChartType(chartType, cbgNonAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for trends chart type with cbg selected and auto and override', () => {
@@ -883,7 +937,7 @@ describe('getStatsByChartType', () => {
         'bgExtents',
       ];
       const stats = report.getStatsByChartType(chartType, cbgAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for trends chart type with cbg selected and auto and no override', () => {
@@ -901,7 +955,7 @@ describe('getStatsByChartType', () => {
         'bgExtents',
       ];
       const stats = report.getStatsByChartType(chartType, cbgAutoNonOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for trends chart type with cbg selected and no auto and no override', () => {
@@ -921,7 +975,7 @@ describe('getStatsByChartType', () => {
         chartType,
         cbgNonAutoNonOverride,
       );
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for trends chart type with cbg selected and no auto and override', () => {
@@ -939,7 +993,7 @@ describe('getStatsByChartType', () => {
         'bgExtents',
       ];
       const stats = report.getStatsByChartType(chartType, cbgNonAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for daily chart type with cbg selected and auto and override', () => {
@@ -955,9 +1009,8 @@ describe('getStatsByChartType', () => {
         'coefficientOfVariation',
       ];
       const stats = report.getStatsByChartType(chartType, cbgAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
-
     it('should return correct stats for daily chart type with cbg selected and auto and no override', () => {
       const chartType = 'daily';
       const expectedStats = [
@@ -970,7 +1023,7 @@ describe('getStatsByChartType', () => {
         'coefficientOfVariation',
       ];
       const stats = report.getStatsByChartType(chartType, cbgAutoNonOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for daily chart type with cbg selected and no auto and no override', () => {
@@ -987,7 +1040,7 @@ describe('getStatsByChartType', () => {
         chartType,
         cbgNonAutoNonOverride,
       );
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for daily chart type with cbg selected and no auto and override', () => {
@@ -1002,7 +1055,7 @@ describe('getStatsByChartType', () => {
         'coefficientOfVariation',
       ];
       const stats = report.getStatsByChartType(chartType, cbgNonAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpCGM chart type with cbg selected and auto and override', () => {
@@ -1016,7 +1069,7 @@ describe('getStatsByChartType', () => {
         'timeInRange',
       ];
       const stats = report.getStatsByChartType(chartType, cbgAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpCGM chart type with cbg selected and auto and no override', () => {
@@ -1030,7 +1083,7 @@ describe('getStatsByChartType', () => {
         'timeInRange',
       ];
       const stats = report.getStatsByChartType(chartType, cbgAutoNonOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpCGM chart type with cbg selected and no auto and no override', () => {
@@ -1047,7 +1100,7 @@ describe('getStatsByChartType', () => {
         chartType,
         cbgNonAutoNonOverride,
       );
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpCGM chart type with cbg selected and no auto and override', () => {
@@ -1061,7 +1114,7 @@ describe('getStatsByChartType', () => {
         'timeInRange',
       ];
       const stats = report.getStatsByChartType(chartType, cbgNonAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpBGM chart type with cbg selected and auto and override', () => {
@@ -1074,7 +1127,7 @@ describe('getStatsByChartType', () => {
         'readingsInRange',
       ];
       const stats = report.getStatsByChartType(chartType, cbgAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpBGM chart type with cbg selected and auto and no override', () => {
@@ -1087,7 +1140,7 @@ describe('getStatsByChartType', () => {
         'readingsInRange',
       ];
       const stats = report.getStatsByChartType(chartType, cbgAutoNonOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpBGM chart type with cbg selected and no auto and no override', () => {
@@ -1103,7 +1156,7 @@ describe('getStatsByChartType', () => {
         chartType,
         cbgNonAutoNonOverride,
       );
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpBGM chart type with cbg selected and no auto and override', () => {
@@ -1116,7 +1169,7 @@ describe('getStatsByChartType', () => {
         'readingsInRange',
       ];
       const stats = report.getStatsByChartType(chartType, cbgNonAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for bgLog chart type with cbg selected and auto and override', () => {
@@ -1128,7 +1181,7 @@ describe('getStatsByChartType', () => {
         'coefficientOfVariation',
       ];
       const stats = report.getStatsByChartType(chartType, cbgAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for bgLog chart type with cbg selected and auto and no override', () => {
@@ -1140,7 +1193,7 @@ describe('getStatsByChartType', () => {
         'coefficientOfVariation',
       ];
       const stats = report.getStatsByChartType(chartType, cbgAutoNonOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for bgLog chart type with cbg selected and no auto and no override', () => {
@@ -1155,7 +1208,7 @@ describe('getStatsByChartType', () => {
         chartType,
         cbgNonAutoNonOverride,
       );
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for bgLog chart type with cbg selected and no auto and override', () => {
@@ -1167,7 +1220,7 @@ describe('getStatsByChartType', () => {
         'coefficientOfVariation',
       ];
       const stats = report.getStatsByChartType(chartType, cbgNonAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
   });
 
@@ -1187,7 +1240,7 @@ describe('getStatsByChartType', () => {
         'bgExtents',
       ];
       const stats = report.getStatsByChartType(chartType, smbgAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for basics chart type with smbg selected and auto and no override', () => {
@@ -1204,7 +1257,7 @@ describe('getStatsByChartType', () => {
         'bgExtents',
       ];
       const stats = report.getStatsByChartType(chartType, smbgAutoNonOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for basics chart type with smbg selected and no auto and no override', () => {
@@ -1223,7 +1276,7 @@ describe('getStatsByChartType', () => {
         chartType,
         smbgNonAutoNonOverride,
       );
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for basics chart type with smbg selected and no auto and override', () => {
@@ -1240,7 +1293,7 @@ describe('getStatsByChartType', () => {
         'bgExtents',
       ];
       const stats = report.getStatsByChartType(chartType, smbgNonAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for trends chart type with smbg selected and auto and override', () => {
@@ -1257,7 +1310,7 @@ describe('getStatsByChartType', () => {
         'bgExtents',
       ];
       const stats = report.getStatsByChartType(chartType, smbgAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for trends chart type with smbg selected and auto and no override', () => {
@@ -1273,7 +1326,7 @@ describe('getStatsByChartType', () => {
         'bgExtents',
       ];
       const stats = report.getStatsByChartType(chartType, smbgAutoNonOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for trends chart type with smbg selected and no auto and no override', () => {
@@ -1291,7 +1344,7 @@ describe('getStatsByChartType', () => {
         chartType,
         smbgNonAutoNonOverride,
       );
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for trends chart type with smbg selected and no auto and override', () => {
@@ -1307,7 +1360,7 @@ describe('getStatsByChartType', () => {
         'bgExtents',
       ];
       const stats = report.getStatsByChartType(chartType, smbgNonAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for daily chart type with smbg selected and auto and override', () => {
@@ -1321,7 +1374,7 @@ describe('getStatsByChartType', () => {
         'carbs',
       ];
       const stats = report.getStatsByChartType(chartType, smbgAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for daily chart type with smbg selected and auto and no override', () => {
@@ -1334,7 +1387,7 @@ describe('getStatsByChartType', () => {
         'carbs',
       ];
       const stats = report.getStatsByChartType(chartType, smbgAutoNonOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for daily chart type with smbg selected and no auto and no override', () => {
@@ -1349,7 +1402,7 @@ describe('getStatsByChartType', () => {
         chartType,
         smbgNonAutoNonOverride,
       );
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for daily chart type with smbg selected and no auto and override', () => {
@@ -1362,7 +1415,7 @@ describe('getStatsByChartType', () => {
         'carbs',
       ];
       const stats = report.getStatsByChartType(chartType, smbgNonAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpCGM chart type with smbg selected and auto and override', () => {
@@ -1376,7 +1429,7 @@ describe('getStatsByChartType', () => {
         'timeInRange',
       ];
       const stats = report.getStatsByChartType(chartType, smbgAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpCGM chart type with smbg selected and auto and no override', () => {
@@ -1390,7 +1443,7 @@ describe('getStatsByChartType', () => {
         'timeInRange',
       ];
       const stats = report.getStatsByChartType(chartType, smbgAutoNonOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpCGM chart type with smbg selected and no auto and no override', () => {
@@ -1407,7 +1460,7 @@ describe('getStatsByChartType', () => {
         chartType,
         smbgNonAutoNonOverride,
       );
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpCGM chart type with smbg selected and no auto and override', () => {
@@ -1421,7 +1474,7 @@ describe('getStatsByChartType', () => {
         'timeInRange',
       ];
       const stats = report.getStatsByChartType(chartType, smbgNonAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpBGM chart type with smbg selected and auto and override', () => {
@@ -1434,7 +1487,7 @@ describe('getStatsByChartType', () => {
         'readingsInRange',
       ];
       const stats = report.getStatsByChartType(chartType, smbgAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpBGM chart type with smbg selected and auto and no override', () => {
@@ -1447,7 +1500,7 @@ describe('getStatsByChartType', () => {
         'readingsInRange',
       ];
       const stats = report.getStatsByChartType(chartType, smbgAutoNonOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpBGM chart type with smbg selected and no auto and no override', () => {
@@ -1463,7 +1516,7 @@ describe('getStatsByChartType', () => {
         chartType,
         smbgNonAutoNonOverride,
       );
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for agpBGM chart type with smbg selected and no auto and override', () => {
@@ -1476,7 +1529,7 @@ describe('getStatsByChartType', () => {
         'readingsInRange',
       ];
       const stats = report.getStatsByChartType(chartType, smbgNonAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for bgLog chart type with smbg selected and auto and override', () => {
@@ -1488,7 +1541,7 @@ describe('getStatsByChartType', () => {
         'coefficientOfVariation',
       ];
       const stats = report.getStatsByChartType(chartType, smbgAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for bgLog chart type with smbg selected and auto and no override', () => {
@@ -1500,7 +1553,7 @@ describe('getStatsByChartType', () => {
         'coefficientOfVariation',
       ];
       const stats = report.getStatsByChartType(chartType, smbgAutoNonOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for bgLog chart type with smbg selected and no auto and no override', () => {
@@ -1515,7 +1568,7 @@ describe('getStatsByChartType', () => {
         chartType,
         smbgNonAutoNonOverride,
       );
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
 
     it('should return correct stats for bgLog chart type with smbg selected and no auto and override', () => {
@@ -1527,7 +1580,7 @@ describe('getStatsByChartType', () => {
         'coefficientOfVariation',
       ];
       const stats = report.getStatsByChartType(chartType, smbgNonAutoOverride);
-      deepEqual(stats, expectedStats);
+      expect(stats).toEqual(expectedStats);
     });
   });
 });
