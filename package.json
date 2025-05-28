@@ -25,7 +25,7 @@
     "@babel/preset-env": "7.25.4",
     "@godaddy/terminus": "4.12.1",
     "@tidepool/data-tools": "2.4.2",
-    "@tidepool/viz": "1.45.0-web-3274-device-settings-data-sources.3",
+    "@tidepool/viz": "1.45.0",
     "axios": "1.8.2",
     "babel-core": "7.0.0-bridge.0",
     "blob-stream": "0.1.3",
