@@ -18,4 +18,8 @@ module.exports = {
   settings: {
     lodash: 3,
   },
+  env: {
+    node: true,
+    jest: true,
+  },
 };

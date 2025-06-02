@@ -3,6 +3,7 @@ npm-debug.log
 .git
 .gitignore
 *.log
+dist
 
 # yarn (ref https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored)
 .pnp.*

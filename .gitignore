@@ -2,6 +2,8 @@ node_modules
 personal
 .eslintcache
 artifact_docker.sh
+dist/*
+!dist/.gitkeep
 
 # yarn (ref https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored)
 .pnp.*
@@ -15,3 +17,5 @@ artifact_docker.sh
 .vscode/
 *.envrc
 *.env
+
+test.*
