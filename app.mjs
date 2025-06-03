@@ -1,14 +1,17 @@
 /* eslint no-restricted-syntax: [0, "ForInStatement"] */
 
 import _ from 'lodash';
-import { existsSync, readFileSync } from 'fs';
-import http from 'http';
-import https from 'https';
+import { existsSync, readFileSync } from 'node:fs';
+import http from 'node:http';
+import https from 'node:https';
 import express from 'express';
 import bodyParser from 'body-parser';
 import { createTerminus } from '@godaddy/terminus';
-import { exportTimeout, register, logMaker } from './lib/utils.js';
-import { getUserData, getUserReport, postUserReport } from './lib/handlers/index.js';
+import { Blob } from 'buffer';
+import { exportTimeout, register, logMaker } from './lib/utils.mjs';
+import { getUserData, getUserReport, postUserReport } from './lib/handlers/index.mjs';
+
+global.Blob = Blob;
 
 export const log = logMaker('app.js', {
   level: process.env.DEBUG_LEVEL || 'info',
