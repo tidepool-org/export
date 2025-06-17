@@ -2559,7 +2559,7 @@ __metadata:
     "@babel/preset-env": 7.25.4
     "@godaddy/terminus": 4.12.1
     "@tidepool/data-tools": 2.4.2
-    "@tidepool/viz": 1.45.0
+    "@tidepool/viz": 1.46.0
     axios: 1.8.2
     babel-core: 7.0.0-bridge.0
     blob-stream: 0.1.3
@@ -2587,9 +2587,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@tidepool/viz@npm:1.45.0":
-  version: 1.45.0
-  resolution: "@tidepool/viz@npm:1.45.0"
+"@tidepool/viz@npm:1.46.0":
+  version: 1.46.0
+  resolution: "@tidepool/viz@npm:1.46.0"
   dependencies:
     bluebird: 3.7.2
     bows: 1.7.2
@@ -2623,6 +2623,7 @@ __metadata:
     react-collapse: 5.1.1
     react-dimensions: 1.3.1
     react-dom: 16.14.0
+    react-i18next: 13.3.1
     react-markdown: 8.0.7
     react-motion: 0.5.2
     react-redux: 8.1.3
@@ -2649,7 +2650,7 @@ __metadata:
     react-dom: 16.x
     react-redux: 8.x
     redux: 4.x
-  checksum: 284fed1d182fbd98cb0c16842a7142295ed0e7d3e4b6f58f2361a7b8d6bdf5691a9da83097b93b38adfdda558821850fe297616753ee59470aca728751e216cc
+  checksum: 21f68191ca62ab82ed7004985054b62abb44bdc1e48a1dadf57b195d0852c16d7f80dd1bbb983e2877c4f9694672a453f0093af31a6ba10582e9c7ffb59e831d
   languageName: node
   linkType: hard
 
@@ -6397,6 +6398,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"html-parse-stringify@npm:^3.0.1":
+  version: 3.0.1
+  resolution: "html-parse-stringify@npm:3.0.1"
+  dependencies:
+    void-elements: 3.1.0
+  checksum: 334fdebd4b5c355dba8e95284cead6f62bf865a2359da2759b039db58c805646350016d2017875718bc3c4b9bf81a0d11be5ee0cf4774a3a5a7b97cde21cfd67
+  languageName: node
+  linkType: hard
+
 "http-cache-semantics@npm:^4.1.1":
   version: 4.1.1
   resolution: "http-cache-semantics@npm:4.1.1"
@@ -9395,6 +9405,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-i18next@npm:13.3.1":
+  version: 13.3.1
+  resolution: "react-i18next@npm:13.3.1"
+  dependencies:
+    "@babel/runtime": ^7.22.5
+    html-parse-stringify: ^3.0.1
+  peerDependencies:
+    i18next: ">= 23.2.3"
+    react: ">= 16.8.0"
+  peerDependenciesMeta:
+    react-dom:
+      optional: true
+    react-native:
+      optional: true
+  checksum: 71a9ae4968d701aa8c11009389f49548058abb16e96d0e0f4107206fe2dfd2df6c43e44b3209824ea42b8d2aefa8fe5ebc56e019a40947b39c3cb703e5293a87
+  languageName: node
+  linkType: hard
+
 "react-is@npm:^16.13.1, react-is@npm:^16.7.0":
   version: 16.13.1
   resolution: "react-is@npm:16.13.1"
@@ -11730,6 +11758,13 @@ __metadata:
   peerDependencies:
     react: ">=16.6.0"
   checksum: 6693417c580810bfc59b70b6fa386d58214b4d3e14c2e10a067a83caf800a3fb93b89671d01e634b6dc84d60dc3a1781836ec6df6786c5ef21ba692ca43c84c3
+  languageName: node
+  linkType: hard
+
+"void-elements@npm:3.1.0":
+  version: 3.1.0
+  resolution: "void-elements@npm:3.1.0"
+  checksum: 0390f818107fa8fce55bb0a5c3f661056001c1d5a2a48c28d582d4d847347c2ab5b7f8272314cac58acf62345126b6b09bea623a185935f6b1c3bbce0dfd7f7f
   languageName: node
   linkType: hard
 
