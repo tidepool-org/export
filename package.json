@@ -1,6 +1,6 @@
 {
   "name": "@tidepool/export",
-  "version": "1.7.4",
+  "version": "1.7.5",
   "main": "app.mjs",
   "repository": {
     "type": "git",
