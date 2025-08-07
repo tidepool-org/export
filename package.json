@@ -1,6 +1,6 @@
 {
   "name": "@tidepool/export",
-  "version": "1.7.5",
+  "version": "1.7.6-WEB-3841-pdf-bolus-limit.1",
   "main": "app.mjs",
   "repository": {
     "type": "git",
