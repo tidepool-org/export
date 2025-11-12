@@ -1584,3 +1584,56 @@ describe('getStatsByChartType', () => {
     });
   });
 });
+
+describe('Report.getLatestInsulinAndPumpSettingsParams', () => {
+  it('returns pumpSettings params for latest in-range insulin uploadId bounded by insulin time', () => {
+    const startDate = '2025-01-01T00:00:00.000Z';
+    const endDate = '2025-01-31T00:00:00.000Z';
+
+    const latestInsulinUploadId = 'upload-insulin';
+    const latestInsulinTime = '2025-01-30T12:00:00.000Z';
+
+    const userData = [
+      { type: 'upload', uploadId: latestInsulinUploadId },
+      { type: 'basal', time: '2025-01-10T00:00:00.000Z', uploadId: 'older-upload' },
+      { type: 'bolus', time: latestInsulinTime, uploadId: latestInsulinUploadId },
+      { type: 'basal', time: '2025-02-01T00:00:00.000Z', uploadId: 'out-of-range' },
+    ];
+
+    const { pumpSettingsParams } = Report.getLatestInsulinAndPumpSettingsParams(
+      userData,
+      startDate,
+      endDate,
+      'test-token',
+      { session: 'stuff' },
+    );
+
+    expect(pumpSettingsParams).toEqual({
+      type: 'pumpSettings',
+      uploadId: latestInsulinUploadId,
+      latest: 1,
+      endDate: moment.utc(latestInsulinTime).toISOString(),
+      restricted_token: 'test-token',
+    });
+  });
+
+  it('returns null params when no in-range insulin data', () => {
+    const startDate = '2025-01-01T00:00:00.000Z';
+    const endDate = '2025-01-31T00:00:00.000Z';
+
+    const userData = [
+      { type: 'upload', uploadId: 'u1' },
+      { type: 'basal', time: '2024-12-31T23:00:00.000Z', uploadId: 'u1' },
+    ];
+
+    const { pumpSettingsParams } = Report.getLatestInsulinAndPumpSettingsParams(
+      userData,
+      startDate,
+      endDate,
+      'test-token',
+      { session: 'stuff' },
+    );
+
+    expect(pumpSettingsParams).toBeNull();
+  });
+});
