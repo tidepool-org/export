@@ -1586,7 +1586,7 @@ describe('getStatsByChartType', () => {
 });
 
 describe('Report.getLatestInsulinAndPumpSettingsParams', () => {
-  it('returns pumpSettings params for latest in-range insulin uploadId bounded by insulin time', () => {
+  it('returns pumpSettings params for latest in-range insulin uploadId bounded by upload time for non-continuous datasets', () => {
     const startDate = '2025-01-01T00:00:00.000Z';
     const endDate = '2025-01-31T00:00:00.000Z';
 
@@ -1594,7 +1594,9 @@ describe('Report.getLatestInsulinAndPumpSettingsParams', () => {
     const latestInsulinTime = '2025-01-30T12:00:00.000Z';
 
     const userData = [
-      { type: 'upload', uploadId: latestInsulinUploadId },
+      {
+        type: 'upload', uploadId: latestInsulinUploadId, dataSetType: 'normal', time: '2025-01-31T00:00:00.000Z',
+      },
       { type: 'basal', time: '2025-01-10T00:00:00.000Z', uploadId: 'older-upload' },
       { type: 'bolus', time: latestInsulinTime, uploadId: latestInsulinUploadId },
       { type: 'basal', time: '2025-02-01T00:00:00.000Z', uploadId: 'out-of-range' },
@@ -1612,7 +1614,38 @@ describe('Report.getLatestInsulinAndPumpSettingsParams', () => {
       type: 'pumpSettings',
       uploadId: latestInsulinUploadId,
       latest: 1,
-      endDate: moment.utc(latestInsulinTime).toISOString(),
+      endDate: moment.utc('2025-01-31T00:00:00.000Z').toISOString(),
+      restricted_token: 'test-token',
+    });
+  });
+
+  it('returns pumpSettings params bounded by latest in-range pump data time for continuous datasets', () => {
+    const startDate = '2025-01-01T00:00:00.000Z';
+    const endDate = '2025-01-31T00:00:00.000Z';
+
+    const uploadId = 'upload-continuous';
+
+    const userData = [
+      { type: 'upload', uploadId, dataSetType: 'continuous' },
+      { type: 'basal', time: '2025-01-05T00:00:00.000Z', uploadId },
+      { type: 'bolus', time: '2025-01-10T00:00:00.000Z', uploadId },
+      { type: 'bolus', time: '2025-02-01T00:00:00.000Z', uploadId }, // out of range
+    ];
+
+    const { pumpSettingsParams } = Report.getLatestInsulinAndPumpSettingsParams(
+      userData,
+      startDate,
+      endDate,
+      'test-token',
+      { session: 'stuff' },
+    );
+
+    // Should be bounded by latest in-range pump data time (2025-01-10), not the out-of-range datum
+    expect(pumpSettingsParams).toEqual({
+      type: 'pumpSettings',
+      uploadId,
+      latest: 1,
+      endDate: moment.utc('2025-01-10T00:00:00.000Z').toISOString(),
       restricted_token: 'test-token',
     });
   });
