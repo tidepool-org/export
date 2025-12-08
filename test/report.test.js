@@ -464,6 +464,10 @@ describe('report', () => {
           moment(uploadData[3].time).subtract(30, 'days').toISOString(),
         );
       });
+
+      it('should include deviceEvent in the type list', () => {
+        expect(opts.type).toContain('deviceEvent');
+      });
     });
 
     describe('when dates params used', () => {
