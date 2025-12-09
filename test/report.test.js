@@ -1618,7 +1618,6 @@ describe('Report.getLatestInsulinAndPumpSettingsParams', () => {
       type: 'pumpSettings',
       uploadId: latestInsulinUploadId,
       latest: 1,
-      endDate: moment.utc('2025-01-31T00:00:00.000Z').toISOString(),
       restricted_token: 'test-token',
     });
   });
