@@ -1,6 +1,6 @@
 {
   "name": "@tidepool/export",
-  "version": "1.7.5",
+  "version": "1.7.6-WEB-3841-pdf-bolus-limit.1",
   "main": "app.mjs",
   "repository": {
     "type": "git",
@@ -25,7 +25,7 @@
     "@babel/preset-env": "7.25.4",
     "@godaddy/terminus": "4.12.1",
     "@tidepool/data-tools": "2.4.2",
-    "@tidepool/viz": "1.46.0",
+    "@tidepool/viz": "1.53.0-rc.1",
     "axios": "1.8.2",
     "babel-core": "7.0.0-bridge.0",
     "blob-stream": "0.1.3",
