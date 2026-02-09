@@ -24,7 +24,7 @@
     "@babel/eslint-parser": "7.22.15",
     "@babel/preset-env": "7.25.4",
     "@godaddy/terminus": "4.12.1",
-    "@tidepool/data-tools": "2.4.2",
+    "@tidepool/data-tools": "2.5.0",
     "@tidepool/viz": "1.53.0-rc.1",
     "axios": "1.8.2",
     "babel-core": "7.0.0-bridge.0",
