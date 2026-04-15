@@ -10631,12 +10631,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sundial@npm:1.7.4":
-  version: 1.7.4
-  resolution: "sundial@npm:1.7.4"
+"sundial@npm:1.7.6-rc.1":
+  version: 1.7.6-rc.1
+  resolution: "sundial@npm:1.7.6-rc.1"
   dependencies:
     moment-timezone: 0.5.43
-  checksum: 64979d87424738b5991e778df7e16b1615dde52e1a6dee1af3f0e49f7acc1802e36cc72fe1138e05bad799f10f477771cd005bf13e41375651b2b91b706d6136
+  checksum: d8c87511a0c17a014b23e5fd12700e64f7fffe8f095682092131817ad27450df915ff2a3d0eff2fa6ae8f89d9f4074747bdb372b3c54534a7db5f73867aa8039
   languageName: node
   linkType: hard
 

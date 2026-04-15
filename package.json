@@ -54,7 +54,7 @@
   "resolutions": {
     "crypto-js": "4.2.0",
     "serialize-javascript": "6.0.2",
-    "sundial": "1.7.4"
+    "sundial": "1.7.6-rc.1"
   },
   "packageManager": "yarn@3.6.4",
   "jest": {
