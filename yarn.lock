@@ -2559,7 +2559,7 @@ __metadata:
     "@babel/preset-env": 7.25.4
     "@godaddy/terminus": 4.12.1
     "@tidepool/data-tools": 2.5.0
-    "@tidepool/viz": 1.56.0-rc.1
+    "@tidepool/viz": 1.56.0-rc.3
     axios: 1.8.2
     babel-core: 7.0.0-bridge.0
     blob-stream: 0.1.3
@@ -2587,9 +2587,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@tidepool/viz@npm:1.56.0-rc.1":
-  version: 1.56.0-rc.1
-  resolution: "@tidepool/viz@npm:1.56.0-rc.1"
+"@tidepool/viz@npm:1.56.0-rc.3":
+  version: 1.56.0-rc.3
+  resolution: "@tidepool/viz@npm:1.56.0-rc.3"
   dependencies:
     bluebird: 3.7.2
     bows: 1.7.2
@@ -2650,7 +2650,7 @@ __metadata:
     react-dom: 16.x
     react-redux: 8.x
     redux: 4.x
-  checksum: ed88791eaeec9e4b75418aae4a205dfdab21fdb48a675c6fddce8c617c42c4aea68f4b0ee8209888ab67d653bf5dd64e4bafe12548091073b3a3ff937383ef24
+  checksum: 61a7dcba4aca596354ed377f90ae1a7f025afb11e1daf80d7fa11b24aa739ec1e7cb976aa3bcdb94e2017084fe24fd5c31be5e36996f693ed126bfa697f8005d
   languageName: node
   linkType: hard
 
