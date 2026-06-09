@@ -4,6 +4,7 @@ import _ from 'lodash';
 import { existsSync, readFileSync } from 'node:fs';
 import http from 'node:http';
 import https from 'node:https';
+import cors from 'cors';
 import express from 'express';
 import bodyParser from 'body-parser';
 import { createTerminus } from '@godaddy/terminus';
@@ -42,6 +43,25 @@ config.exportTimeout = exportTimeout;
 log.info(`Export download timeout set to ${config.exportTimeout} ms`);
 
 const app = express();
+
+const allowedOrigins = [
+  /^https?:\/\/([a-z0-9-]+\.)*tidepool\.org$/,
+  ...(process.env.ALLOW_LOCALHOST === 'true' ? [/^http:\/\/localhost:3000$/] : []),
+];
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.some((re) => re.test(origin))) {
+      callback(null, true);
+    } else {
+      callback(new Error(`Origin not allowed by CORS: ${origin}`));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-tidepool-session-token', 'x-tidepool-trace-session'],
+  maxAge: 86400,
+}));
 
 app.get('/metrics', async (req, res) => {
   res.set('Content-Type', register.contentType);

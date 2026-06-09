@@ -42,4 +42,5 @@ Configuration is done via environment variables. The following variables are ava
 | DEBUG_PDF | Whether to write out files for debugging purposes | false |
 | PLOTLY_ORCA | The URL of the Plotly Orca service | http://localhost:9091 |
 | EXPORT_TIMEOUT | The maximum time to wait for a request to complete | 120000 |
+| ALLOW_LOCALHOST | Enables localhost:3000 as an allowed CORS origin | false |
 
