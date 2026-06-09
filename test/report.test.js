@@ -109,7 +109,7 @@ describe('report', () => {
         settings: {
           excludedDevices: [],
           bgPrefs: expectedMmoLPref,
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           timePrefs: expectedTZPrefs,
         },
       });
@@ -135,7 +135,7 @@ describe('report', () => {
           bgSource: 'cbg',
           endpoints: [],
           excludeDaysWithoutBolus: false,
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           stats: [
             'timeInRange',
             'averageGlucose',
@@ -172,7 +172,7 @@ describe('report', () => {
           bgPrefs: expectedMmoLPref,
           bgSource: 'cbg',
           endpoints: [],
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           stats: [
             'timeInRange',
             'averageGlucose',
@@ -185,12 +185,15 @@ describe('report', () => {
           types: {
             basal: {},
             bolus: {},
+            insulin: {},
             cbg: {},
             deviceEvent: {},
             food: {},
             message: {},
             smbg: {},
             wizard: {},
+            physicalActivity: {},
+            reportedState: {},
           },
         },
       });
@@ -215,7 +218,7 @@ describe('report', () => {
           bgPrefs: expectedMgdLPref,
           bgSource: 'smbg',
           endpoints: [],
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           stats: [
             'averageGlucose',
             'bgExtents',
@@ -250,7 +253,7 @@ describe('report', () => {
           bgPrefs: expectedMgdLPref,
           bgSource: 'cbg',
           endpoints: [],
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           stats: [
             'averageGlucose',
             'bgExtents',
@@ -286,7 +289,7 @@ describe('report', () => {
           bgPrefs: expectedMgdLPref,
           bgSource: 'smbg',
           endpoints: [],
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           stats: [
             'readingsInRange',
             'averageGlucose',
@@ -716,7 +719,7 @@ describe('report', () => {
             permissions: {},
             userid: userDetails.userId,
             profile: expectedProfile,
-            settings: {},
+            settings: { siteChangeSource: 'undeclared' },
           },
         });
       });
@@ -729,6 +732,118 @@ describe('report', () => {
         expect(Object.keys(opts.queries).includes('agpCGM')).toBe(true);
         expect(Object.keys(opts.queries).includes('daily')).toBe(true);
         expect(Object.keys(opts.queries).includes('bgLog')).toBe(true);
+      });
+    });
+
+    describe('when printOpts overrides are supplied', () => {
+      const uploadData = [
+        { type: 'upload', time: '2022-05-25T00:00:00.000Z' },
+        { type: 'smbg', time: '2022-05-30T00:00:00.000Z' },
+        { type: 'upload', time: '2022-06-25T00:00:00.000Z' },
+        { type: 'cbg', time: '2022-07-25T00:00:00.000Z' },
+        { type: 'upload', time: '2022-07-30T00:00:00.000Z' },
+      ];
+
+      const buildReport = (printOpts) => new Report(
+        testLog,
+        userDetails,
+        {
+          tzName: 'NZ',
+          bgUnits: mmolLUnits,
+          reports: ['all'],
+          startDate: '2022-06-25T00:00:00.000Z',
+          endDate: '2022-07-25T00:00:00.000Z',
+        },
+        requestDetail,
+        printOpts,
+      );
+
+      it('should take the supplied report config wholesale and keep its query in sync', () => {
+        const start = 1778803200000;
+        const end = 1780012800000;
+        const r = buildReport({
+          daily: { endpoints: [start, end], disabled: false },
+        });
+        const opts = r.getReportOptions({ data: uploadData });
+
+        // values pass through as-is (epoch-ms numbers, as viz expects)
+        expect(opts.printOptions.daily.endpoints).toEqual([start, end]);
+        expect(opts.queries.daily.endpoints).toEqual([start, end]);
+      });
+
+      it('should take the supplied disabled flag for a report', () => {
+        const r = buildReport({
+          settings: { disabled: true },
+          basics: {
+            endpoints: [1778803200000, 1780012800000],
+            disabled: true,
+          },
+        });
+        const opts = r.getReportOptions({ data: uploadData });
+
+        expect(opts.printOptions.settings.disabled).toBe(true);
+        expect(opts.printOptions.basics.disabled).toBe(true);
+      });
+
+      it('should propagate cgmSampleIntervalRange onto the daily query', () => {
+        const range = [300000, 1.7976931348623157e308];
+        const r = buildReport({
+          daily: {
+            endpoints: [1778803200000, 1780012800000],
+            disabled: false,
+            cgmSampleIntervalRange: range,
+          },
+        });
+        const opts = r.getReportOptions({ data: uploadData });
+
+        expect(opts.queries.daily.cgmSampleIntervalRange).toEqual(range);
+      });
+
+      it('should fall back to the computed default for reports not present in printOpts', () => {
+        const r = buildReport({
+          daily: { endpoints: [1778803200000, 1780012800000], disabled: false },
+        });
+        const opts = r.getReportOptions({ data: uploadData });
+
+        // agpCGM was not supplied, so it keeps the computed default Date endpoints
+        expect(opts.printOptions.agpCGM.endpoints).toEqual([
+          moment('2022-06-25T12:00:00.000Z').toDate(),
+          moment('2022-07-25T12:00:00.000Z').toDate(),
+        ]);
+      });
+
+      it('should default cgmSampleIntervalRange to the 5-minute range when omitted', () => {
+        const r = buildReport({
+          daily: { endpoints: [1778803200000, 1780012800000], disabled: false },
+        });
+        const opts = r.getReportOptions({ data: uploadData });
+
+        expect(opts.queries.daily.cgmSampleIntervalRange).toEqual([300000, Infinity]);
+      });
+
+      it('should inject siteChangeSource from printOpts.basics when supplied', () => {
+        const r = buildReport({
+          basics: {
+            endpoints: [1778803200000, 1780012800000],
+            disabled: false,
+            siteChangeSource: 'tubingPrime',
+          },
+        });
+        const opts = r.getReportOptions({ data: uploadData });
+
+        expect(opts.printOptions.patient.settings.siteChangeSource).toBe('tubingPrime');
+      });
+
+      it('should fall back to the undeclared siteChangeSource when not supplied', () => {
+        const r = buildReport({ basics: { disabled: false } });
+        const opts = r.getReportOptions({ data: uploadData });
+
+        expect(opts.printOptions.patient.settings.siteChangeSource).toBe('undeclared');
+      });
+
+      it('should be safe when no printOpts argument is provided', () => {
+        const r = buildReport(undefined);
+        expect(() => r.getReportOptions({ data: uploadData })).not.toThrow();
       });
     });
   });
