@@ -109,7 +109,7 @@ describe('report', () => {
         settings: {
           excludedDevices: [],
           bgPrefs: expectedMmoLPref,
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           timePrefs: expectedTZPrefs,
         },
       });
@@ -135,7 +135,7 @@ describe('report', () => {
           bgSource: 'cbg',
           endpoints: [],
           excludeDaysWithoutBolus: false,
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           stats: [
             'timeInRange',
             'averageGlucose',
@@ -172,7 +172,7 @@ describe('report', () => {
           bgPrefs: expectedMmoLPref,
           bgSource: 'cbg',
           endpoints: [],
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           stats: [
             'timeInRange',
             'averageGlucose',
@@ -215,7 +215,7 @@ describe('report', () => {
           bgPrefs: expectedMgdLPref,
           bgSource: 'smbg',
           endpoints: [],
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           stats: [
             'averageGlucose',
             'bgExtents',
@@ -250,7 +250,7 @@ describe('report', () => {
           bgPrefs: expectedMgdLPref,
           bgSource: 'cbg',
           endpoints: [],
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           stats: [
             'averageGlucose',
             'bgExtents',
@@ -286,7 +286,7 @@ describe('report', () => {
           bgPrefs: expectedMgdLPref,
           bgSource: 'smbg',
           endpoints: [],
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           stats: [
             'readingsInRange',
             'averageGlucose',
