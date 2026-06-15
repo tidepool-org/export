@@ -107,7 +107,6 @@ describe('report', () => {
 
       expect(settingReport.buildReportQueries({ data })).toEqual({
         settings: {
-          excludedDevices: [],
           bgPrefs: expectedMmoLPref,
           metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           timePrefs: expectedTZPrefs,
@@ -130,7 +129,7 @@ describe('report', () => {
       expect(basicsReport.buildReportQueries(cbgNonAutoNonOverride)).toEqual({
         basics: {
           aggregationsByDate: 'basals, boluses, fingersticks, siteChanges',
-          excludedDevices: [],
+
           bgPrefs: expectedMgdLPref,
           bgSource: 'cbg',
           endpoints: [],
@@ -168,7 +167,7 @@ describe('report', () => {
       expect(dailyReport.buildReportQueries(cbgNonAutoNonOverride)).toEqual({
         daily: {
           aggregationsByDate: 'dataByDate, statsByDate',
-          excludedDevices: [],
+
           bgPrefs: expectedMmoLPref,
           bgSource: 'cbg',
           endpoints: [],
@@ -211,7 +210,7 @@ describe('report', () => {
       expect(agpBGMReport.buildReportQueries(cbgNonAutoNonOverride)).toEqual({
         agpBGM: {
           aggregationsByDate: 'dataByDate, statsByDate',
-          excludedDevices: [],
+
           bgPrefs: expectedMgdLPref,
           bgSource: 'smbg',
           endpoints: [],
@@ -246,7 +245,7 @@ describe('report', () => {
       expect(agpCGMReport.buildReportQueries(cbgNonAutoNonOverride)).toEqual({
         agpCGM: {
           aggregationsByDate: 'dataByDate, statsByDate',
-          excludedDevices: [],
+
           bgPrefs: expectedMgdLPref,
           bgSource: 'cbg',
           endpoints: [],
@@ -282,7 +281,7 @@ describe('report', () => {
       expect(bgLogReport.buildReportQueries(cbgNonAutoNonOverride)).toEqual({
         bgLog: {
           aggregationsByDate: 'dataByDate',
-          excludedDevices: [],
+
           bgPrefs: expectedMgdLPref,
           bgSource: 'smbg',
           endpoints: [],
