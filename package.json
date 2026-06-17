@@ -7,6 +7,9 @@
     "url": "https://github.com/tidepool-org/data-export-service-app.git"
   },
   "type": "module",
+  "engines": {
+    "node": ">=24.15.0"
+  },
   "scripts": {
     "lint": "eslint --cache --format=node_modules/eslint-formatter-pretty .",
     "lint-fix": "yarn run lint -- --fix",
