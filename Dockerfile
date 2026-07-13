@@ -1,5 +1,5 @@
 ### Stage 0 - Base image
-FROM node:20.8.0-alpine AS base
+FROM node:24.15.0-alpine AS base
 WORKDIR /app
 RUN apk --no-cache update && \
     apk --no-cache upgrade && \
@@ -42,7 +42,7 @@ COPY . .
 RUN node esbuild.config.js
 
 ### Stage 5 - Production image
-FROM node:20.8.0-alpine AS production
+FROM node:24.15.0-alpine AS production
 USER node
 ENV NODE_ENV=production
 COPY --from=dependencies /app/node_modules_production ./node_modules
