@@ -1,0 +1,10 @@
+ignore:
+  SNYK-JS-INFLIGHT-6095116:
+    - '*':
+        reason: >-
+          No remediation available. Production dependency via bunyan, but only
+          for the 'rotating-file' logger, which is not in use. Production 
+          dependency via exceljs, but not possible for an outside attacker to
+          access this vulnerability. Development dependency via mocha and eslint.
+        expires: 2025-03-31
+patch: {}
