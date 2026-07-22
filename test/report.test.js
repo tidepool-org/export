@@ -25,36 +25,36 @@ describe('report', () => {
   const expectedMgdLPref = {
     bgUnits: mgdLUnits,
     bgClasses: {
-      low: {
-        boundary: 70,
-      },
-      target: {
-        boundary: 180,
-      },
+      'very-low': { boundary: 54 },
+      low: { boundary: 70 },
+      target: { boundary: 180 },
+      high: { boundary: 250 },
+      'very-high': { boundary: 350 },
     },
     bgBounds: {
-      veryHighThreshold: 250,
-      targetUpperBound: 180,
-      targetLowerBound: 70,
       veryLowThreshold: 54,
+      targetLowerBound: 70,
+      targetUpperBound: 180,
+      veryHighThreshold: 250,
+      extremeHighThreshold: 350,
       clampThreshold: 600,
     },
   };
   const expectedMmoLPref = {
     bgUnits: mmolLUnits,
     bgClasses: {
-      low: {
-        boundary: 3.9,
-      },
-      target: {
-        boundary: 10,
-      },
+      'very-low': { boundary: 3.0 },
+      low: { boundary: 3.9 },
+      target: { boundary: 10.0 },
+      high: { boundary: 13.9 },
+      'very-high': { boundary: 19.4 },
     },
     bgBounds: {
-      veryHighThreshold: 13.9,
-      targetUpperBound: 10,
+      veryLowThreshold: 3.0,
       targetLowerBound: 3.9,
-      veryLowThreshold: 3,
+      targetUpperBound: 10.0,
+      veryHighThreshold: 13.9,
+      extremeHighThreshold: 19.4,
       clampThreshold: 33.3,
     },
   };
@@ -424,6 +424,196 @@ describe('report', () => {
         requestDetail,
       );
 
+      expect(r.getBGPrefs()).toEqual(expectedMmoLPref);
+    });
+
+    it('should default to ADA standard bounds when no glycemic range is supplied', () => {
+      const r = new Report(
+        testLog,
+        userDetails,
+        { bgUnits: mgdLUnits },
+        requestDetail,
+      );
+
+      expect(r.getBGPrefs()).toEqual(expectedMgdLPref);
+    });
+
+    it('should apply ADA older/high-risk preset bounds in mg/dL', () => {
+      const r = new Report(
+        testLog,
+        userDetails,
+        {
+          bgUnits: mgdLUnits,
+          glycemicRangeType: 'preset',
+          glycemicRangePreset: 'adaHighRisk',
+        },
+        requestDetail,
+      );
+
+      expect(r.getBGPrefs()).toEqual({
+        bgUnits: mgdLUnits,
+        bgClasses: {
+          'very-low': { boundary: null },
+          low: { boundary: 70 },
+          target: { boundary: 180 },
+          high: { boundary: 250 },
+          'very-high': { boundary: null },
+        },
+        bgBounds: {
+          veryLowThreshold: null,
+          targetLowerBound: 70,
+          targetUpperBound: 180,
+          veryHighThreshold: 250,
+          // Forced to the unit default by blip's reshape (preset value is null).
+          extremeHighThreshold: 350,
+          clampThreshold: 600,
+        },
+      });
+    });
+
+    it('should apply ADA pregnancy type 1 preset bounds in mg/dL', () => {
+      const r = new Report(
+        testLog,
+        userDetails,
+        {
+          bgUnits: mgdLUnits,
+          glycemicRangeType: 'preset',
+          glycemicRangePreset: 'adaPregnancyType1',
+        },
+        requestDetail,
+      );
+
+      expect(r.getBGPrefs()).toEqual({
+        bgUnits: mgdLUnits,
+        bgClasses: {
+          'very-low': { boundary: 54 },
+          low: { boundary: 63 },
+          target: { boundary: 140 },
+          high: { boundary: null },
+          'very-high': { boundary: null },
+        },
+        bgBounds: {
+          veryLowThreshold: 54,
+          targetLowerBound: 63,
+          targetUpperBound: 140,
+          veryHighThreshold: null,
+          // Forced to the unit default by blip's reshape (preset value is null).
+          extremeHighThreshold: 350,
+          clampThreshold: 600,
+        },
+      });
+    });
+
+    it('should apply ADA pregnancy type 2 (gestational) preset bounds in mmol/L', () => {
+      const r = new Report(
+        testLog,
+        userDetails,
+        {
+          bgUnits: mmolLUnits,
+          glycemicRangeType: 'preset',
+          glycemicRangePreset: 'adaPregnancyType2',
+        },
+        requestDetail,
+      );
+
+      expect(r.getBGPrefs()).toEqual({
+        bgUnits: mmolLUnits,
+        bgClasses: {
+          'very-low': { boundary: 3.0 },
+          low: { boundary: 3.5 },
+          target: { boundary: 7.8 },
+          high: { boundary: null },
+          'very-high': { boundary: null },
+        },
+        bgBounds: {
+          veryLowThreshold: 3.0,
+          targetLowerBound: 3.5,
+          targetUpperBound: 7.8,
+          veryHighThreshold: null,
+          // Forced to the unit default by blip's reshape (preset value is null).
+          extremeHighThreshold: 19.4,
+          clampThreshold: 33.3,
+        },
+      });
+    });
+
+    it('should fall back to ADA standard when preset is unrecognized', () => {
+      const r = new Report(
+        testLog,
+        userDetails,
+        {
+          bgUnits: mgdLUnits,
+          glycemicRangeType: 'preset',
+          glycemicRangePreset: 'somethingBogus',
+        },
+        requestDetail,
+      );
+
+      expect(r.getBGPrefs()).toEqual(expectedMgdLPref);
+    });
+
+    it('should fall back to ADA standard for custom-type ranges (matching viz)', () => {
+      const r = new Report(
+        testLog,
+        userDetails,
+        {
+          bgUnits: mgdLUnits,
+          glycemicRangeType: 'custom',
+          glycemicRangeThresholds: [
+            'name,low,upperBound.value,80.000000,upperBound.units,mg/dL,inclusive,true',
+            'name,high,upperBound.value,200.000000,upperBound.units,mg/dL,inclusive,false',
+          ],
+        },
+        requestDetail,
+      );
+
+      expect(r.getBGPrefs()).toEqual(expectedMgdLPref);
+    });
+
+    it('should not throw when a preset has null bound values (e.g. adaHighRisk)', () => {
+      // Verifies the null guard does not falsely reject intentionally-null properties
+      const r = new Report(
+        testLog,
+        userDetails,
+        {
+          bgUnits: mgdLUnits,
+          glycemicRangeType: 'preset',
+          glycemicRangePreset: 'adaHighRisk',
+        },
+        requestDetail,
+      );
+
+      expect(() => r.getBGPrefs()).not.toThrow();
+    });
+  });
+
+  describe('Report constructor – glycemicRangeThresholds resilience', () => {
+    it('should not throw when glycemicRangeThresholds is null', () => {
+      expect(() => new Report(
+        testLog,
+        userDetails,
+        { bgUnits: mmolLUnits, glycemicRangeThresholds: null },
+        requestDetail,
+      )).not.toThrow();
+    });
+
+    it('should not throw when glycemicRangeThresholds entries are malformed strings', () => {
+      expect(() => new Report(
+        testLog,
+        userDetails,
+        { bgUnits: mmolLUnits, glycemicRangeThresholds: ['not-a-valid-threshold', ''] },
+        requestDetail,
+      )).not.toThrow();
+    });
+
+    it('should silently skip malformed threshold entries and produce empty thresholds', () => {
+      const r = new Report(
+        testLog,
+        userDetails,
+        { bgUnits: mmolLUnits, glycemicRangeThresholds: ['not-a-valid-threshold'] },
+        requestDetail,
+      );
+      // Malformed entries are dropped; falls back to ADA standard bounds
       expect(r.getBGPrefs()).toEqual(expectedMmoLPref);
     });
   });
