@@ -173,7 +173,9 @@ describe('glycemicRanges', () => {
 
   // STOPGAP parity: getBgPrefsForGlycemicRange must reproduce blip's reshape
   // behavior, where extremeHighThreshold is forced to the unit default even for
-  // presets whose raw table value is null. See docs/glycemic-ranges-parity.md.
+  // presets whose raw table value is null (blip/app/core/utils.js
+  // getBGPrefsForDataProcessing -> viz reshapeBgClassesToBgBounds). These tests
+  // are canaries: if viz stops forcing the default, they fail on purpose.
   describe('getBgPrefsForGlycemicRange (blip parity)', () => {
     it('forces extremeHighThreshold to the unit default for adaHighRisk (raw is null)', () => {
       const raw = getRawPresetBgBounds({
