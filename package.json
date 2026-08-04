@@ -1,6 +1,6 @@
 {
   "name": "@tidepool/export",
-  "version": "1.7.8-WEB-4556-glycemic-ranges.1",
+  "version": "1.7.8-rc.1",
   "main": "app.mjs",
   "repository": {
     "type": "git",
