@@ -107,9 +107,8 @@ describe('report', () => {
 
       expect(settingReport.buildReportQueries({ data })).toEqual({
         settings: {
-          excludedDevices: [],
           bgPrefs: expectedMmoLPref,
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           timePrefs: expectedTZPrefs,
         },
       });
@@ -130,12 +129,12 @@ describe('report', () => {
       expect(basicsReport.buildReportQueries(cbgNonAutoNonOverride)).toEqual({
         basics: {
           aggregationsByDate: 'basals, boluses, fingersticks, siteChanges',
-          excludedDevices: [],
+
           bgPrefs: expectedMgdLPref,
           bgSource: 'cbg',
           endpoints: [],
           excludeDaysWithoutBolus: false,
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           stats: [
             'timeInRange',
             'averageGlucose',
@@ -168,11 +167,11 @@ describe('report', () => {
       expect(dailyReport.buildReportQueries(cbgNonAutoNonOverride)).toEqual({
         daily: {
           aggregationsByDate: 'dataByDate, statsByDate',
-          excludedDevices: [],
+
           bgPrefs: expectedMmoLPref,
           bgSource: 'cbg',
           endpoints: [],
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           stats: [
             'timeInRange',
             'averageGlucose',
@@ -211,11 +210,11 @@ describe('report', () => {
       expect(agpBGMReport.buildReportQueries(cbgNonAutoNonOverride)).toEqual({
         agpBGM: {
           aggregationsByDate: 'dataByDate, statsByDate',
-          excludedDevices: [],
+
           bgPrefs: expectedMgdLPref,
           bgSource: 'smbg',
           endpoints: [],
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           stats: [
             'averageGlucose',
             'bgExtents',
@@ -246,11 +245,11 @@ describe('report', () => {
       expect(agpCGMReport.buildReportQueries(cbgNonAutoNonOverride)).toEqual({
         agpCGM: {
           aggregationsByDate: 'dataByDate, statsByDate',
-          excludedDevices: [],
+
           bgPrefs: expectedMgdLPref,
           bgSource: 'cbg',
           endpoints: [],
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           stats: [
             'averageGlucose',
             'bgExtents',
@@ -282,11 +281,11 @@ describe('report', () => {
       expect(bgLogReport.buildReportQueries(cbgNonAutoNonOverride)).toEqual({
         bgLog: {
           aggregationsByDate: 'dataByDate',
-          excludedDevices: [],
+
           bgPrefs: expectedMgdLPref,
           bgSource: 'smbg',
           endpoints: [],
-          metaData: 'latestPumpUpload, bgSources',
+          metaData: 'latestPumpUpload, bgSources, devices, matchedDevices',
           stats: [
             'readingsInRange',
             'averageGlucose',
