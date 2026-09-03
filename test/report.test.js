@@ -1,12 +1,15 @@
 /* eslint-disable no-underscore-dangle */
 
 import moment from 'moment-timezone';
+import * as vizGlycemicRangesNS from '@tidepool/viz/dist/glycemicRanges.js';
 
 import reports from '../lib/report.mjs';
 
 import { mmolLUnits, mgdLUnits, logMaker } from '../lib/utils.mjs';
 
 const { Report } = reports;
+const vizGlycemicRanges = vizGlycemicRangesNS.default || vizGlycemicRangesNS;
+const { getGlycemicRangesPreset } = vizGlycemicRanges;
 
 describe('report', () => {
   const testLog = logMaker('report_test.js', {
@@ -61,6 +64,11 @@ describe('report', () => {
   const expectedTZPrefs = {
     timezoneAware: true,
     timezoneName: 'NZ',
+  };
+  // Callers that send no glycemic-range params keep blip's ADA Standard default.
+  const expectedDefaultGlycemicRanges = {
+    type: 'preset',
+    preset: 'adaStandard',
   };
   let report;
 
@@ -213,6 +221,7 @@ describe('report', () => {
           aggregationsByDate: 'dataByDate, statsByDate',
           excludedDevices: [],
           bgPrefs: expectedMgdLPref,
+          glycemicRanges: expectedDefaultGlycemicRanges,
           bgSource: 'smbg',
           endpoints: [],
           metaData: 'latestPumpUpload, bgSources',
@@ -248,6 +257,7 @@ describe('report', () => {
           aggregationsByDate: 'dataByDate, statsByDate',
           excludedDevices: [],
           bgPrefs: expectedMgdLPref,
+          glycemicRanges: expectedDefaultGlycemicRanges,
           bgSource: 'cbg',
           endpoints: [],
           metaData: 'latestPumpUpload, bgSources',
@@ -340,6 +350,17 @@ describe('report', () => {
         expect(Object.keys(allReportQueries).includes('all')).toBe(false);
       });
 
+      it('should only attach glycemicRanges to the two AGP queries', () => {
+        // blip (app/core/usePrintPDF/helpers.js) puts glycemicRanges on agpBGM
+        // and agpCGM only. The AGP print view is the only consumer, and any
+        // extra key here would silently diverge the two renderers.
+        const withRanges = Object.keys(allReportQueries).filter(
+          (key) => allReportQueries[key].glycemicRanges !== undefined,
+        );
+
+        expect(withRanges.sort()).toEqual(['agpBGM', 'agpCGM']);
+      });
+
       it('should default to all reports when none specified', () => {
         const reportDefaultAll = new Report(
           testLog,
@@ -356,6 +377,130 @@ describe('report', () => {
             reportDefaultAll.buildReportQueries(cbgNonAutoNonOverride),
           ).length,
         ).toBe(6);
+      });
+    });
+  });
+
+  describe('glycemicRanges on AGP queries', () => {
+    const cbgNonAutoNonOverride = {
+      data: {
+        metaData: {
+          bgSources: { current: 'cbg' },
+          latestPumpUpload: {
+            isAutomatedBasalDevice: false,
+            isSettingsOverrideDevice: false,
+          },
+        },
+      },
+    };
+
+    const buildAgpQueries = (reportDetail) => new Report(
+      testLog,
+      userDetails,
+      {
+        tzName: 'NZ',
+        bgUnits: mgdLUnits,
+        reports: ['agpCGM', 'agpBGM'],
+        ...reportDetail,
+      },
+      requestDetail,
+    ).buildReportQueries(cbgNonAutoNonOverride);
+
+    it('should carry the requested preset on both AGP queries', () => {
+      const queries = buildAgpQueries({
+        glycemicRangeType: 'preset',
+        glycemicRangePreset: 'adaPregnancyType2',
+      });
+
+      expect(queries.agpCGM.glycemicRanges).toEqual({
+        type: 'preset',
+        preset: 'adaPregnancyType2',
+      });
+      expect(queries.agpBGM.glycemicRanges).toEqual({
+        type: 'preset',
+        preset: 'adaPregnancyType2',
+      });
+    });
+
+    it('should resolve to the requested preset through viz', () => {
+      const queries = buildAgpQueries({
+        glycemicRangeType: 'preset',
+        glycemicRangePreset: 'adaPregnancyType2',
+      });
+
+      expect(getGlycemicRangesPreset(queries.agpCGM.glycemicRanges)).toBe(
+        'adaPregnancyType2',
+      );
+    });
+
+    it('should agree with the bounds it puts on bgPrefs', () => {
+      const queries = buildAgpQueries({
+        glycemicRangeType: 'preset',
+        glycemicRangePreset: 'adaPregnancyType2',
+      });
+
+      expect(queries.agpCGM.bgPrefs.bgBounds).toMatchObject({
+        veryLowThreshold: 54,
+        targetLowerBound: 63,
+        targetUpperBound: 140,
+      });
+      expect(queries.agpCGM.glycemicRanges.preset).toBe('adaPregnancyType2');
+    });
+
+    it.each([
+      'adaStandard',
+      'adaHighRisk',
+      'adaPregnancyType1',
+      'adaPregnancyType2',
+    ])('should carry the %s preset unchanged', (preset) => {
+      const queries = buildAgpQueries({
+        glycemicRangeType: 'preset',
+        glycemicRangePreset: preset,
+      });
+
+      expect(queries.agpCGM.glycemicRanges).toEqual({ type: 'preset', preset });
+    });
+
+    it('should default to the ADA Standard preset when no range is sent', () => {
+      const queries = buildAgpQueries({});
+
+      expect(queries.agpCGM.glycemicRanges).toEqual({
+        type: 'preset',
+        preset: 'adaStandard',
+      });
+    });
+
+    it('should carry parsed thresholds for a custom range', () => {
+      const queries = buildAgpQueries({
+        glycemicRangeType: 'custom',
+        glycemicRangeThresholds: [
+          'name,My Custom Ranges,upperBound.value,7.000000,upperBound.units,mmol/L,inclusive,true',
+        ],
+      });
+
+      expect(queries.agpCGM.glycemicRanges).toEqual({
+        type: 'custom',
+        custom: {
+          thresholds: [
+            {
+              name: 'My Custom Ranges',
+              upperBound: { value: 7, units: 'mmol/L' },
+              inclusive: true,
+            },
+          ],
+        },
+      });
+    });
+
+    it('should carry an empty threshold list for an unparseable custom range', () => {
+      const queries = buildAgpQueries({
+        glycemicRangeType: 'custom',
+        glycemicRangeThresholds: ['not-a-valid-threshold'],
+      });
+
+      expect(queries.agpCGM.glycemicRanges).toEqual({
+        type: 'custom',
+        custom: { thresholds: [] },
       });
     });
   });
