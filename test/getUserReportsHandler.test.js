@@ -1,6 +1,6 @@
 // Tests that getUserReportsHandler forwards the glycemic-range query params to
-// the Report unchanged. Parsing of the CSV-encoded thresholds is Report's job
-// (via lib/glycemicRanges.mjs parseThresholds), not the handler's.
+// the Report unchanged. Parsing of the CSV-encoded custom ranges is Report's
+// job (via lib/glycemicRanges.mjs parseCustomRangesParam), not the handler's.
 // Each test loads the handler with fresh mocks via jest.isolateModules to avoid
 // hoisting issues with ESM default-export mocks.
 
@@ -93,15 +93,15 @@ describe('getUserReportsHandler – glycemic-range query params', () => {
   });
 
   it('forwards a single CSV-encoded threshold string unchanged', async () => {
-    const raw = 'name,low,upperBound.value,70,upperBound.units,mg/dL,inclusive,true';
+    const raw = 'name,Mine,units,mg/dL,low,70.000000,high,180.000000';
     const reportDetail = await invokeHandler({ glycemicRangeThresholds: raw });
     expect(reportDetail.glycemicRangeThresholds).toBe(raw);
   });
 
   it('forwards a repeated (array) threshold param unchanged', async () => {
     const thresholds = [
-      'name,low,upperBound.value,70,upperBound.units,mg/dL,inclusive,true',
-      'name,high,upperBound.value,180,upperBound.units,mg/dL,inclusive,false',
+      'name,Mine,units,mg/dL,low,70.000000,high,180.000000',
+      'name,Other,units,mmol/L,low,3.900000,high,10.000000',
     ];
     const reportDetail = await invokeHandler({ glycemicRangeThresholds: thresholds });
     expect(reportDetail.glycemicRangeThresholds).toEqual(thresholds);

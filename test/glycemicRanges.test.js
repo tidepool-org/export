@@ -1,22 +1,35 @@
 import {
-  parseThreshold,
-  parseThresholds,
+  parseCustomRanges,
+  parseCustomRangesParam,
   getRawPresetBgBounds,
   getBgPrefsForGlycemicRange,
 } from '../lib/glycemicRanges.mjs';
 import { mgdLUnits, mmolLUnits } from '../lib/utils.mjs';
 
 describe('glycemicRanges', () => {
-  describe('parseThreshold', () => {
-    it('parses a well-formed threshold string', () => {
+  describe('parseCustomRanges', () => {
+    it('parses well-formed custom ranges with all thresholds', () => {
       expect(
-        parseThreshold(
-          'name,low,upperBound.value,70.000000,upperBound.units,mg/dL,inclusive,true',
+        parseCustomRanges(
+          'name,Mine,units,mg/dL,veryLow,54.000000,low,70.000000,'
+            + 'high,180.000000,veryHigh,250.000000',
         ),
       ).toEqual({
-        name: 'low',
-        upperBound: { value: 70, units: 'mg/dL' },
-        inclusive: true,
+        name: 'Mine',
+        units: 'mg/dL',
+        thresholds: {
+          veryLow: 54, low: 70, high: 180, veryHigh: 250,
+        },
+      });
+    });
+
+    it('omits unset optional thresholds', () => {
+      expect(
+        parseCustomRanges('name,Mine,units,mmol/L,low,3.900000,high,10.000000'),
+      ).toEqual({
+        name: 'Mine',
+        units: 'mmol/L',
+        thresholds: { low: 3.9, high: 10 },
       });
     });
 
@@ -24,70 +37,60 @@ describe('glycemicRanges', () => {
       // clinic uses encoding/csv.Writer, which quotes any field containing a
       // comma and doubles internal quotes.
       expect(
-        parseThreshold(
-          'name,"foo, bar",upperBound.value,180.000000,upperBound.units,mg/dL,inclusive,false',
-        ),
+        parseCustomRanges('name,"foo, bar",units,mg/dL,low,70.000000,high,180.000000'),
       ).toEqual({
         name: 'foo, bar',
-        upperBound: { value: 180, units: 'mg/dL' },
-        inclusive: false,
+        units: 'mg/dL',
+        thresholds: { low: 70, high: 180 },
       });
     });
 
     it('parses a name containing escaped quotes', () => {
       expect(
-        parseThreshold(
-          'name,"she said ""hi""",upperBound.value,140.000000,upperBound.units,mg/dL,inclusive,true',
-        ),
-      ).toEqual({
-        name: 'she said "hi"',
-        upperBound: { value: 140, units: 'mg/dL' },
-        inclusive: true,
-      });
+        parseCustomRanges(
+          'name,"she said ""hi""",units,mg/dL,low,70.000000,high,180.000000',
+        ).name,
+      ).toBe('she said "hi"');
     });
 
     it('returns null for non-string or empty input', () => {
-      expect(parseThreshold('')).toBeNull();
-      expect(parseThreshold(null)).toBeNull();
-      expect(parseThreshold(undefined)).toBeNull();
+      expect(parseCustomRanges('')).toBeNull();
+      expect(parseCustomRanges(null)).toBeNull();
+      expect(parseCustomRanges(undefined)).toBeNull();
     });
 
-    it('returns null when upperBound.value is not a number', () => {
-      expect(
-        parseThreshold(
-          'name,low,upperBound.value,nope,upperBound.units,mg/dL,inclusive,true',
-        ),
-      ).toBeNull();
+    it.each([
+      ['the name is missing', 'units,mg/dL,low,70,high,180'],
+      ['the units are missing', 'name,Mine,low,70,high,180'],
+      ['the units are unknown', 'name,Mine,units,mg,low,70,high,180'],
+      ['low is missing', 'name,Mine,units,mg/dL,high,180'],
+      ['high is missing', 'name,Mine,units,mg/dL,low,70'],
+      ['low is not a number', 'name,Mine,units,mg/dL,low,nope,high,180'],
+      ['low is negative', 'name,Mine,units,mg/dL,low,-1,high,180'],
+      ['veryLow is not a number', 'name,Mine,units,mg/dL,veryLow,nope,low,70,high,180'],
+      ['veryHigh is negative', 'name,Mine,units,mg/dL,low,70,high,180,veryHigh,-1'],
+      ['it is in the old per-threshold format',
+        'name,low,upperBound.value,70.000000,upperBound.units,mg/dL,inclusive,true'],
+    ])('returns null when %s', (_, raw) => {
+      expect(parseCustomRanges(raw)).toBeNull();
     });
   });
 
-  describe('parseThresholds', () => {
-    it('returns [] for missing input', () => {
-      expect(parseThresholds()).toEqual([]);
-      expect(parseThresholds(null)).toEqual([]);
+  describe('parseCustomRangesParam', () => {
+    const raw = 'name,Mine,units,mg/dL,low,70.000000,high,180.000000';
+    const parsed = { name: 'Mine', units: 'mg/dL', thresholds: { low: 70, high: 180 } };
+
+    it('returns null for missing input', () => {
+      expect(parseCustomRangesParam()).toBeNull();
+      expect(parseCustomRangesParam(null)).toBeNull();
     });
 
-    it('accepts a single string (express coerces a single repeat to a string)', () => {
-      const out = parseThresholds(
-        'name,low,upperBound.value,70.000000,upperBound.units,mg/dL,inclusive,true',
-      );
-      expect(out).toHaveLength(1);
+    it('accepts a single string (express coerces a single param to a string)', () => {
+      expect(parseCustomRangesParam(raw)).toEqual(parsed);
     });
 
-    it('accepts an array (express coerces multiple repeats to an array)', () => {
-      const out = parseThresholds([
-        'name,low,upperBound.value,70.000000,upperBound.units,mg/dL,inclusive,true',
-        'name,high,upperBound.value,180.000000,upperBound.units,mg/dL,inclusive,false',
-      ]);
-      expect(out).toHaveLength(2);
-    });
-
-    it('skips invalid entries', () => {
-      const out = parseThresholds([
-        'name,low,upperBound.value,70.000000,upperBound.units,mg/dL,inclusive,true',
-        'totally bogus',
-      ]);
-      expect(out).toHaveLength(1);
+    it('uses the first entry of an array (express coerces repeats to an array)', () => {
+      expect(parseCustomRangesParam([raw, 'totally bogus'])).toEqual(parsed);
     });
   });
 

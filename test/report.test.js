@@ -470,37 +470,32 @@ describe('report', () => {
       });
     });
 
-    it('should carry parsed thresholds for a custom range', () => {
+    it('should carry parsed custom ranges for a custom range', () => {
       const queries = buildAgpQueries({
         glycemicRangeType: 'custom',
-        glycemicRangeThresholds: [
-          'name,My Custom Ranges,upperBound.value,7.000000,upperBound.units,mmol/L,inclusive,true',
-        ],
+        glycemicRangeThresholds:
+          'name,My Custom Ranges,units,mmol/L,low,3.900000,high,7.000000,veryHigh,13.900000',
       });
 
       expect(queries.agpCGM.glycemicRanges).toEqual({
         type: 'custom',
         custom: {
-          thresholds: [
-            {
-              name: 'My Custom Ranges',
-              upperBound: { value: 7, units: 'mmol/L' },
-              inclusive: true,
-            },
-          ],
+          name: 'My Custom Ranges',
+          units: 'mmol/L',
+          thresholds: { low: 3.9, high: 7, veryHigh: 13.9 },
         },
       });
     });
 
-    it('should carry an empty threshold list for an unparseable custom range', () => {
+    it('should default to the ADA Standard preset for an unparseable custom range', () => {
       const queries = buildAgpQueries({
         glycemicRangeType: 'custom',
-        glycemicRangeThresholds: ['not-a-valid-threshold'],
+        glycemicRangeThresholds: 'not-a-valid-threshold',
       });
 
       expect(queries.agpCGM.glycemicRanges).toEqual({
-        type: 'custom',
-        custom: { thresholds: [] },
+        type: 'preset',
+        preset: 'adaStandard',
       });
     });
   });
@@ -704,10 +699,8 @@ describe('report', () => {
         {
           bgUnits: mgdLUnits,
           glycemicRangeType: 'custom',
-          glycemicRangeThresholds: [
-            'name,low,upperBound.value,80.000000,upperBound.units,mg/dL,inclusive,true',
-            'name,high,upperBound.value,200.000000,upperBound.units,mg/dL,inclusive,false',
-          ],
+          glycemicRangeThresholds:
+            'name,Mine,units,mg/dL,veryLow,60.000000,low,80.000000,high,200.000000',
         },
         requestDetail,
       );
@@ -751,7 +744,7 @@ describe('report', () => {
       )).not.toThrow();
     });
 
-    it('should silently skip malformed threshold entries and produce empty thresholds', () => {
+    it('should ignore malformed threshold entries', () => {
       const r = new Report(
         testLog,
         userDetails,
