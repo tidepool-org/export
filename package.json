@@ -1,6 +1,6 @@
 {
   "name": "@tidepool/export",
-  "version": "1.78.0",
+  "version": "1.79.0-WEB-4640-site-changes-daily-pdf.1",
   "main": "app.mjs",
   "repository": {
     "type": "git",
