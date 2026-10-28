@@ -1066,6 +1066,36 @@ describe('report', () => {
         expect(Object.keys(opts.queries).includes('bgLog')).toBe(true);
       });
     });
+
+    describe('patient tags and sites', () => {
+      const buildPrintOptions = (reportDetail) => new Report(
+        testLog,
+        userDetails,
+        {
+          tzName: 'NZ',
+          bgUnits: mmolLUnits,
+          reports: ['all'],
+          ...reportDetail,
+        },
+        requestDetail,
+      ).getReportOptions({ data: [] }).printOptions;
+
+      it('should map a single patientTags string to [{ name }]', () => {
+        const printOptions = buildPrintOptions({ patientTags: 'Tag A' });
+        expect(printOptions.patientTags).toEqual([{ name: 'Tag A' }]);
+      });
+
+      it('should map a sites array to one { name } per item, in order', () => {
+        const printOptions = buildPrintOptions({ sites: ['Main Clinic', 'Site & Annex'] });
+        expect(printOptions.sites).toEqual([{ name: 'Main Clinic' }, { name: 'Site & Annex' }]);
+      });
+
+      it('should omit patientTags and sites when absent', () => {
+        const printOptions = buildPrintOptions({});
+        expect(printOptions).not.toHaveProperty('patientTags');
+        expect(printOptions).not.toHaveProperty('sites');
+      });
+    });
   });
 });
 
