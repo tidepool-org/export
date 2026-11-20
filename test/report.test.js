@@ -1067,6 +1067,49 @@ describe('report', () => {
       });
     });
 
+    describe('patient tags and sites', () => {
+      const buildPrintOptions = (reportDetail) => new Report(
+        testLog,
+        userDetails,
+        {
+          tzName: 'NZ',
+          bgUnits: mmolLUnits,
+          reports: ['all'],
+          ...reportDetail,
+        },
+        requestDetail,
+      ).getReportOptions({ data: [] }).printOptions;
+
+      it('should map a single patientTags string to [{ name }]', () => {
+        const printOptions = buildPrintOptions({ patientTags: 'Tag A' });
+        expect(printOptions.patientTags).toEqual([{ name: 'Tag A' }]);
+      });
+
+      it('should map a sites array to one { name } per item', () => {
+        const printOptions = buildPrintOptions({ sites: ['Main Clinic', 'Site & Annex'] });
+        expect(printOptions.sites).toEqual([{ name: 'Main Clinic' }, { name: 'Site & Annex' }]);
+      });
+
+      it('should sort names like blip: case-insensitive, uppercase first on ties, numeric', () => {
+        const names = ['site 10', 'Site 2', 'b', 'B', 'a'];
+        const expected = ['a', 'B', 'b', 'Site 2', 'site 10'].map((name) => ({ name }));
+        const printOptions = buildPrintOptions({ patientTags: names, sites: names });
+        expect(printOptions.patientTags).toEqual(expected);
+        expect(printOptions.sites).toEqual(expected);
+      });
+
+      it('should drop empty and non-string names', () => {
+        const printOptions = buildPrintOptions({ patientTags: ['Tag A', '', { b: 'x' }] });
+        expect(printOptions.patientTags).toEqual([{ name: 'Tag A' }]);
+      });
+
+      it('should omit patientTags and sites when absent', () => {
+        const printOptions = buildPrintOptions({});
+        expect(printOptions).not.toHaveProperty('patientTags');
+        expect(printOptions).not.toHaveProperty('sites');
+      });
+    });
+
     describe('site change source', () => {
       const buildPatientSettings = (reportDetail) => new Report(
         testLog,

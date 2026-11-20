@@ -1,5 +1,5 @@
-// Tests that getUserReportsHandler forwards the glycemic-range query params to
-// the Report unchanged. Parsing of the CSV-encoded thresholds is Report's job
+// Tests that getUserReportsHandler forwards the glycemic-range, patient tag and
+// site query params to the Report unchanged. Parsing of the CSV-encoded thresholds is Report's job
 // (via lib/glycemicRanges.mjs parseThresholds), not the handler's.
 // Each test loads the handler with fresh mocks via jest.isolateModules to avoid
 // hoisting issues with ESM default-export mocks.
@@ -105,6 +105,28 @@ describe('getUserReportsHandler – glycemic-range query params', () => {
     ];
     const reportDetail = await invokeHandler({ glycemicRangeThresholds: thresholds });
     expect(reportDetail.glycemicRangeThresholds).toEqual(thresholds);
+  });
+});
+
+describe('getUserReportsHandler – patient tags and sites query params', () => {
+  it('forwards a single patientTags and sites string unchanged', async () => {
+    const reportDetail = await invokeHandler({ patientTags: 'Tag A', sites: 'Main Clinic' });
+    expect(reportDetail.patientTags).toBe('Tag A');
+    expect(reportDetail.sites).toBe('Main Clinic');
+  });
+
+  it('forwards repeated (array) patientTags and sites unchanged', async () => {
+    const patientTags = ['Tag B', 'Tag A'];
+    const sites = ['Main Clinic', 'Site & Annex'];
+    const reportDetail = await invokeHandler({ patientTags, sites });
+    expect(reportDetail.patientTags).toEqual(patientTags);
+    expect(reportDetail.sites).toEqual(sites);
+  });
+
+  it('leaves patientTags and sites undefined when absent', async () => {
+    const reportDetail = await invokeHandler({});
+    expect(reportDetail.patientTags).toBeUndefined();
+    expect(reportDetail.sites).toBeUndefined();
   });
 });
 
