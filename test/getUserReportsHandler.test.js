@@ -107,3 +107,15 @@ describe('getUserReportsHandler – glycemic-range query params', () => {
     expect(reportDetail.glycemicRangeThresholds).toEqual(thresholds);
   });
 });
+
+describe('getUserReportsHandler – siteChangeSource query param', () => {
+  it('forwards siteChangeSource unchanged', async () => {
+    const reportDetail = await invokeHandler({ siteChangeSource: 'tubingPrime' });
+    expect(reportDetail.siteChangeSource).toBe('tubingPrime');
+  });
+
+  it('leaves siteChangeSource undefined when absent', async () => {
+    const reportDetail = await invokeHandler({});
+    expect(reportDetail.siteChangeSource).toBeUndefined();
+  });
+});

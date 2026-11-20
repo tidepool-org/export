@@ -1066,6 +1066,36 @@ describe('report', () => {
         expect(Object.keys(opts.queries).includes('bgLog')).toBe(true);
       });
     });
+
+    describe('site change source', () => {
+      const buildPatientSettings = (reportDetail) => new Report(
+        testLog,
+        userDetails,
+        {
+          tzName: 'NZ',
+          bgUnits: mmolLUnits,
+          reports: ['all'],
+          ...reportDetail,
+        },
+        requestDetail,
+      ).getReportOptions({ data: [] }).printOptions.patient.settings;
+
+      it.each(['cannulaPrime', 'reservoirChange', 'tubingPrime'])(
+        'should pass a %s siteChangeSource to the patient settings',
+        (siteChangeSource) => {
+          expect(buildPatientSettings({ siteChangeSource })).toEqual({ siteChangeSource });
+        },
+      );
+
+      it('should leave the patient settings empty when siteChangeSource is absent', () => {
+        expect(buildPatientSettings({})).toEqual({});
+      });
+
+      it('should ignore an unknown or repeated siteChangeSource', () => {
+        expect(buildPatientSettings({ siteChangeSource: 'cannulaFill' })).toEqual({});
+        expect(buildPatientSettings({ siteChangeSource: ['tubingPrime', 'cannulaPrime'] })).toEqual({});
+      });
+    });
   });
 });
 
