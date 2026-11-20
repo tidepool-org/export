@@ -129,3 +129,15 @@ describe('getUserReportsHandler – patient tags and sites query params', () => 
     expect(reportDetail.sites).toBeUndefined();
   });
 });
+
+describe('getUserReportsHandler – siteChangeSource query param', () => {
+  it('forwards siteChangeSource unchanged', async () => {
+    const reportDetail = await invokeHandler({ siteChangeSource: 'tubingPrime' });
+    expect(reportDetail.siteChangeSource).toBe('tubingPrime');
+  });
+
+  it('leaves siteChangeSource undefined when absent', async () => {
+    const reportDetail = await invokeHandler({});
+    expect(reportDetail.siteChangeSource).toBeUndefined();
+  });
+});
